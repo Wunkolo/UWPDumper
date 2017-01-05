@@ -12,7 +12,7 @@ namespace fs = std::experimental::filesystem;
 
 #include "UWP.hpp"
 
-uint32_t __stdcall DumperThread(void*)
+uint32_t __stdcall DumperThread(void *DLLHandle)
 {
 	std::wstring DumpPath = fs::path(UWP::Current::Storage::GetTempStatePath()) / L"DUMP";
 
@@ -53,6 +53,8 @@ uint32_t __stdcall DumperThread(void*)
 	}
 	LogFile << "Dumping complete!" << std::endl;
 
+	FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(DLLHandle), 0);
+
 	return 0;
 }
 
@@ -66,7 +68,7 @@ int32_t __stdcall DllMain(HINSTANCE hDLL, uint32_t Reason, void *Reserved)
 			nullptr,
 			0,
 			reinterpret_cast<unsigned long(__stdcall*)(void*)>(&DumperThread),
-			nullptr,
+			hDLL,
 			0,
 			nullptr
 		);
