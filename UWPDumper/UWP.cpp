@@ -7,6 +7,8 @@
 
 #include <memory>
 
+namespace
+{
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
 {
@@ -19,8 +21,6 @@ void FreeDeleter(T *Data)
 	free(Data);
 }
 
-namespace
-{
 std::unique_ptr<PACKAGE_ID, void(*)(PACKAGE_ID*)> GetPackageIdentifier()
 {
 	uint32_t Size = 0;
