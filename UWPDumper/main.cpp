@@ -1,5 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <fstream>
+#include <iomanip>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -14,8 +16,26 @@ uint32_t __stdcall DumperThread(void*)
 {
 	std::wstring DumpPath = fs::path(UWP::Current::Storage::GetTempStatePath()) / L"DUMP";
 
-	//LOG << "Dumping files..." << std::endl;
-	//LOG << "Dump path: " << DumpPath << std::endl;
+	std::wofstream LogFile;
+	LogFile.open(
+		fs::path(UWP::Current::Storage::GetTempStatePath()) / L"Log.txt",
+		std::ios::trunc
+	);
+
+	LogFile << "UWPDumper Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
+	LogFile << "\t-https://github.com/Wunkolo/UWPDumper\n";
+	LogFile << std::wstring(80, '-') << std::endl;
+
+	LogFile << "Publisher:\n\t" << UWP::Current::GetPublisher() << std::endl;
+	LogFile << "Publisher ID:\n\t" << UWP::Current::GetPublisherID() << std::endl;
+	LogFile << "Publisher Path:\n\t" << UWP::Current::Storage::GetPublisherPath() << std::endl;
+
+	LogFile << "Package Path:\n\t" << UWP::Current::GetPackagePath() << std::endl;
+	LogFile << "Package Name:\n\t" << UWP::Current::GetFullName() << std::endl;
+	LogFile << "Family Name:\n\t" << UWP::Current::GetFamilyName() << std::endl;
+
+	LogFile << "Dumping files..." << std::endl;
+	LogFile << "Dump path:\n\t" << DumpPath << std::endl;
 
 	try
 	{
@@ -27,12 +47,11 @@ uint32_t __stdcall DumperThread(void*)
 	}
 	catch( fs::filesystem_error &e )
 	{
-		//LOG << "Error dumping: " << e.what() << std::endl;
-		//LOG << "\tOperand 1: " << e.path1() << std::endl;
-		//LOG << "\tOperand 2: " << e.path2() << std::endl;
-		//return false;
+		LogFile << "Error dumping: " << e.what() << std::endl;
+		LogFile << "\tOperand 1: " << e.path1() << std::endl;
+		LogFile << "\tOperand 2: " << e.path2() << std::endl;
 	}
-	//LOG << "Dumping complete!" << std::endl;
+	LogFile << "Dumping complete!" << std::endl;
 
 	return 0;
 }
@@ -54,7 +73,8 @@ int32_t __stdcall DllMain(HINSTANCE hDLL, uint32_t Reason, void *Reserved)
 			reinterpret_cast<unsigned long(__stdcall*)(void*)>(&DumperThread),
 			nullptr,
 			0,
-			nullptr);
+			nullptr
+		);
 	}
 	case DLL_PROCESS_DETACH:
 	case DLL_THREAD_ATTACH:
