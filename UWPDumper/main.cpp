@@ -62,11 +62,6 @@ int32_t __stdcall DllMain(HINSTANCE hDLL, uint32_t Reason, void *Reserved)
 	{
 	case DLL_PROCESS_ATTACH:
 	{
-		if( !DisableThreadLibraryCalls(hDLL) )
-		{
-			return false;
-		}
-
 		CreateThread(
 			nullptr,
 			0,
