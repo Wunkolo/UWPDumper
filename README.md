@@ -3,3 +3,4 @@ DLL and Injector for dumping UWP applications at run-time to bypass encrypted fi
 
 UWPDumper requires the [Windows 10 Anniversary SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)(10.0.14393.0) to be compiled.
 
+### [Download latest x64 binary here](https://ci.appveyor.com/project/Wunkolo/uwpdumper/build/artifacts)
