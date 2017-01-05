@@ -7,48 +7,68 @@
 
 #include <memory>
 
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+	return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+template<typename T>
+void FreeDeleter(T *Data)
+{
+	free(Data);
+}
+
 namespace
 {
-std::shared_ptr<PACKAGE_ID> GetPackageIdentifier()
+std::unique_ptr<PACKAGE_ID, void(*)(PACKAGE_ID*)> GetPackageIdentifier()
 {
 	uint32_t Size = 0;
 	GetCurrentPackageId(&Size, nullptr);
 
-	std::shared_ptr<PACKAGE_ID> Result = std::make_shared<PACKAGE_ID>();
-
-	if( GetCurrentPackageId(
-		&Size,
-		reinterpret_cast<uint8_t*>(Result.get())
-	) != ERROR_SUCCESS )
+	if( Size )
 	{
-		return nullptr;
+		std::unique_ptr<PACKAGE_ID, void(*)(PACKAGE_ID*)> PackageID(
+			reinterpret_cast<PACKAGE_ID*>(malloc(Size)),
+			FreeDeleter<PACKAGE_ID>
+		);
+		GetCurrentPackageId(
+			&Size,
+			reinterpret_cast<uint8_t*>(PackageID.get())
+		);
+		return PackageID;
 	}
-	return Result;
+	return std::unique_ptr<PACKAGE_ID, void(*)(PACKAGE_ID*)>(nullptr, FreeDeleter<PACKAGE_ID>);
 }
 
-std::shared_ptr<PACKAGE_INFO> GetPackageInfo()
+std::unique_ptr<PACKAGE_INFO, void(*)(PACKAGE_INFO*)> GetPackageInfo()
 {
 	uint32_t Size = 0;
 	uint32_t Count = 0;
 	GetCurrentPackageInfo(PACKAGE_FILTER_HEAD, &Size, nullptr, &Count);
 
-	std::shared_ptr<PACKAGE_INFO> Result(
-		reinterpret_cast<PACKAGE_INFO*>(malloc(Size)),
-		[](PACKAGE_INFO *PackageInfo)
+	if( Size )
 	{
-		free(PackageInfo);
-	}
-	);
+		std::unique_ptr<PACKAGE_INFO, void(*)(PACKAGE_INFO*)> PackageInfo(
+			reinterpret_cast<PACKAGE_INFO*>(malloc(Size)),
+			[](PACKAGE_INFO *PackageID)
+		{
+			free(PackageID);
+		}
+		);
 
-	if( GetCurrentPackageInfo(
-		PACKAGE_FILTER_HEAD,
-		&Size,
-		reinterpret_cast<uint8_t*>(Result.get()),
-		&Count) != ERROR_SUCCESS )
-	{
-		return nullptr;
+		GetCurrentPackageInfo(
+			PACKAGE_FILTER_HEAD,
+			&Size,
+			reinterpret_cast<uint8_t*>(PackageInfo.get()),
+			&Count
+		);
+		return PackageInfo;
 	}
-	return Result;
+
+	return std::unique_ptr<PACKAGE_INFO, void(*)(PACKAGE_INFO*)>(
+		nullptr,
+		FreeDeleter<PACKAGE_INFO>);;
 }
 }
 
@@ -78,7 +98,7 @@ std::wstring UWP::Current::GetFullName()
 
 std::wstring UWP::Current::GetArchitecture()
 {
-	std::shared_ptr<PACKAGE_ID> PackageID = GetPackageIdentifier();
+	auto PackageID = GetPackageIdentifier();
 	if( PackageID )
 	{
 		switch( PackageID->processorArchitecture )
@@ -110,7 +130,7 @@ std::wstring UWP::Current::GetArchitecture()
 
 std::wstring UWP::Current::GetPublisher()
 {
-	std::shared_ptr<PACKAGE_ID> PackageID = GetPackageIdentifier();
+	auto PackageID = GetPackageIdentifier();
 	if( PackageID )
 	{
 		return std::wstring(PackageID->publisher);
@@ -120,7 +140,7 @@ std::wstring UWP::Current::GetPublisher()
 
 std::wstring UWP::Current::GetPublisherID()
 {
-	std::shared_ptr<PACKAGE_ID> PackageID = GetPackageIdentifier();
+	auto PackageID = GetPackageIdentifier();
 	if( PackageID )
 	{
 		return std::wstring(PackageID->publisherId);
@@ -142,7 +162,7 @@ std::wstring UWP::Current::GetPackagePath()
 
 std::wstring UWP::Current::Storage::GetPublisherPath()
 {
-	std::shared_ptr<PACKAGE_ID> PackageID = GetPackageIdentifier();
+	auto PackageID = GetPackageIdentifier();
 	if( PackageID )
 	{
 		wchar_t UserPath[MAX_PATH] = { 0 };
