@@ -14,12 +14,7 @@ std::shared_ptr<PACKAGE_ID> GetPackageIdentifier()
 	uint32_t Size = 0;
 	GetCurrentPackageId(&Size, nullptr);
 
-	std::shared_ptr<PACKAGE_ID> Result(
-		reinterpret_cast<PACKAGE_ID*>(malloc(Size)),
-		[](PACKAGE_ID *PackageID)
-	{
-		free(PackageID);
-	});
+	std::shared_ptr<PACKAGE_ID> Result = std::make_shared<PACKAGE_ID>();
 
 	if( GetCurrentPackageId(
 		&Size,
