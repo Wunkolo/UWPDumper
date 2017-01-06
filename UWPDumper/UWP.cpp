@@ -21,14 +21,14 @@ void FreeDeleter(T *Data)
 	free(Data);
 }
 
-std::unique_ptr<PACKAGE_ID, void(*)(PACKAGE_ID*)> GetPackageIdentifier()
+std::unique_ptr<PACKAGE_ID, decltype(&FreeDeleter<PACKAGE_ID>)> GetPackageIdentifier()
 {
 	uint32_t Size = 0;
 	GetCurrentPackageId(&Size, nullptr);
 
 	if( Size )
 	{
-		std::unique_ptr<PACKAGE_ID, void(*)(PACKAGE_ID*)> PackageID(
+		std::unique_ptr<PACKAGE_ID, decltype(&FreeDeleter<PACKAGE_ID>)> PackageID(
 			reinterpret_cast<PACKAGE_ID*>(malloc(Size)),
 			FreeDeleter<PACKAGE_ID>
 		);
@@ -38,10 +38,13 @@ std::unique_ptr<PACKAGE_ID, void(*)(PACKAGE_ID*)> GetPackageIdentifier()
 		);
 		return PackageID;
 	}
-	return std::unique_ptr<PACKAGE_ID, void(*)(PACKAGE_ID*)>(nullptr, FreeDeleter<PACKAGE_ID>);
+	return std::unique_ptr<PACKAGE_ID, decltype(&FreeDeleter<PACKAGE_ID>)>(
+		nullptr,
+		FreeDeleter<PACKAGE_ID>
+		);
 }
 
-std::unique_ptr<PACKAGE_INFO, void(*)(PACKAGE_INFO*)> GetPackageInfo()
+std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> GetPackageInfo()
 {
 	uint32_t Size = 0;
 	uint32_t Count = 0;
@@ -49,7 +52,7 @@ std::unique_ptr<PACKAGE_INFO, void(*)(PACKAGE_INFO*)> GetPackageInfo()
 
 	if( Size )
 	{
-		std::unique_ptr<PACKAGE_INFO, void(*)(PACKAGE_INFO*)> PackageInfo(
+		std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> PackageInfo(
 			reinterpret_cast<PACKAGE_INFO*>(malloc(Size)),
 			[](PACKAGE_INFO *PackageID)
 		{
@@ -66,9 +69,10 @@ std::unique_ptr<PACKAGE_INFO, void(*)(PACKAGE_INFO*)> GetPackageInfo()
 		return PackageInfo;
 	}
 
-	return std::unique_ptr<PACKAGE_INFO, void(*)(PACKAGE_INFO*)>(
+	return std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)>(
 		nullptr,
-		FreeDeleter<PACKAGE_INFO>);;
+		FreeDeleter<PACKAGE_INFO>
+		);
 }
 }
 
