@@ -32,7 +32,7 @@ int main()
 {
 	SetConsoleOutputCP(437);
 
-	Console::SetTextColor(Console::Color::Info);
+	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 	std::wcout << "UWPInjector Build date (" << __DATE__ << " : " << __TIME__ << ")" << std::endl;
 	Console::SetTextColor(Console::Color::Input);
 	std::wcout << "\t-https://github.com/Wunkolo/UWPDumper\n";
@@ -66,10 +66,15 @@ int main()
 				);
 				if( NameLength )
 				{
+					Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 					std::wcout
 						<< std::setw(12)
-						<< ProcessEntry.th32ProcessID << " | "
-						<< ProcessEntry.szExeFile << " : ";
+						<< ProcessEntry.th32ProcessID;
+
+					Console::SetTextColor(Console::Color::Info);
+					std::wcout
+						<< " | "
+						<< ProcessEntry.szExeFile << " :\n\t\t-";
 					std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
 
 					ProcessCode = GetPackageFullName(
@@ -96,7 +101,9 @@ int main()
 		// Error iterating processes
 	}
 	std::cout << "Enter ProcessID: ";
+	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 	std::cin >> ProcessID;
+	Console::SetTextColor(Console::Color::Info);
 
 	SetAccessControl(GetRunningDirectory() + L"\\" + DLLFile);
 
@@ -185,6 +192,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 	uint32_t Result = 0;
 	if( !ProcessID )
 	{
+		std::wcout << "Invalid Process ID: " << ProcessID << std::endl;
 		return false;
 	}
 
@@ -214,7 +222,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 		ProcessID);
 	if( Process == nullptr )
 	{
-		std::wcout << "Unable to open process for writing" << std::endl;
+		std::wcout << "Unable to open process ID" << ProcessID << " for writing" << std::endl;
 		return false;
 	}
 	void* VirtualAlloc = reinterpret_cast<void*>(
