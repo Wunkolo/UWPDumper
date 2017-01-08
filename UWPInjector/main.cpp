@@ -22,7 +22,10 @@ namespace Console = MinConsole;
 
 const wchar_t* DLLFile = L"UWPDumper.dll";
 
-void SetAccessControl(const std::wstring &ExecutableName);
+void SetAccessControl(
+	const std::wstring &ExecutableName,
+	const wchar_t *AccessString
+);
 
 bool DLLInjectRemote(uint32_t ProcessID, const std::wstring &DLLpath);
 
@@ -105,7 +108,7 @@ int main()
 	std::cin >> ProcessID;
 	Console::SetTextColor(Console::Color::Info);
 
-	SetAccessControl(GetRunningDirectory() + L"\\" + DLLFile);
+	SetAccessControl(GetRunningDirectory() + L"\\" + DLLFile, L"S-1-15-2-1");
 
 	if( DLLInjectRemote(ProcessID, GetRunningDirectory() + L"\\" + DLLFile) )
 	{
@@ -122,7 +125,7 @@ int main()
 	return 0;
 }
 
-void SetAccessControl(const std::wstring &ExecutableName)
+void SetAccessControl(const std::wstring &ExecutableName, const wchar_t* AccessString)
 {
 	PSECURITY_DESCRIPTOR SecurityDescriptor = nullptr;
 	EXPLICIT_ACCESSW ExplicitAccess = { 0 };
@@ -144,7 +147,7 @@ void SetAccessControl(const std::wstring &ExecutableName)
 		&SecurityDescriptor) == ERROR_SUCCESS
 		)
 	{
-		ConvertStringSidToSidW(L"S-1-15-2-1", &SecurityIdentifier);
+		ConvertStringSidToSidW(AccessString, &SecurityIdentifier);
 		if( SecurityIdentifier != nullptr )
 		{
 			ExplicitAccess.grfAccessPermissions = GENERIC_READ | GENERIC_EXECUTE;
@@ -202,7 +205,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 		return false;
 	}
 
-	SetAccessControl(DLLpath);
+	SetAccessControl(DLLpath, L"S-1-15-2-1");
 
 	void* ProcLoadLibrary = reinterpret_cast<void*>(
 		GetProcAddress(
