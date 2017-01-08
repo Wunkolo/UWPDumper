@@ -104,7 +104,7 @@ int main()
 		Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
 		std::cout << "Unable to iterate active processes" << std::endl;
 		system("pause");
-		return 1;
+		return EXIT_FAILURE;
 	}
 	std::cout << "Enter ProcessID: ";
 	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
@@ -125,7 +125,7 @@ int main()
 		system("pause");
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 void SetAccessControl(const std::wstring &ExecutableName, const wchar_t* AccessString)

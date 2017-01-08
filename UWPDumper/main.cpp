@@ -55,7 +55,7 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 
 	FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(DLLHandle), 0);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 int32_t __stdcall DllMain(HINSTANCE hDLL, uint32_t Reason, void *Reserved)
