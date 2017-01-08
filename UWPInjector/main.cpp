@@ -101,7 +101,10 @@ int main()
 	}
 	else
 	{
-		// Error iterating processes
+		Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
+		std::cout << "Unable to iterate active processes" << std::endl;
+		system("pause");
+		return 1;
 	}
 	std::cout << "Enter ProcessID: ";
 	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
