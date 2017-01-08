@@ -62,7 +62,7 @@ int main()
 			if( ProcessHandle )
 			{
 				uint32_t NameLength = 0;
-				int32_t ProcessCode = GetPackageFullName(
+				int32_t ProcessCode = GetPackageFamilyName(
 					ProcessHandle,
 					&NameLength,
 					nullptr
@@ -80,7 +80,7 @@ int main()
 						<< ProcessEntry.szExeFile << " :\n\t\t-";
 					std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
 
-					ProcessCode = GetPackageFullName(
+					ProcessCode = GetPackageFamilyName(
 						ProcessHandle,
 						&NameLength,
 						PackageName.get()
