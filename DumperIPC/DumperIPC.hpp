@@ -18,7 +18,7 @@ struct MessageEntry
 	MessageEntry();
 	MessageEntry(const wchar_t* String);
 
-	static constexpr std::size_t StringSize = 512;
+	static constexpr std::size_t StringSize = 1024;
 	wchar_t String[StringSize];
 };
 
