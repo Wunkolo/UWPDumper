@@ -50,14 +50,17 @@ public:
 		Mutex.clear(std::memory_order_release);
 		return Temp;
 	}
-	std::size_t Size() const
+	std::size_t Size()
 	{
-		return Tail - Head;
+		while( Mutex.test_and_set(std::memory_order_acquire) ) {}
+		Mutex.clear(std::memory_order_release);
+		std::size_t Result = Tail - Head;
+		return Result;
 	}
 
-	bool Empty() const
+	bool Empty()
 	{
-		return Head == Tail;
+		return Size() == 0;
 	}
 private:
 	std::array<Type, MaxSize> Entries = { Type() };
@@ -108,17 +111,15 @@ void PushMessage(const wchar_t* Message)
 void PushMessage(const MessageEntry& Message)
 {
 	MessagePool.Enqueue(Message);
-	++CurMessageCount;
 }
 
 MessageEntry PopMessage()
 {
-	--CurMessageCount;
 	return MessagePool.Dequeue();
 }
 
 std::size_t MessageCount()
 {
-	return CurMessageCount;
+	return MessagePool.Size();
 }
 }
