@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UWPDumper", "UWPDumper\UWPDumper.vcxproj", "{169F3E39-2CC2-4136-AD6A-23EA935AE150}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UWPInjector", "UWPInjector\UWPInjector.vcxproj", "{7B3AF0F2-1ADD-4145-B91F-328829797CEE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{169F3E39-2CC2-4136-AD6A-23EA935AE150} = {169F3E39-2CC2-4136-AD6A-23EA935AE150}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
