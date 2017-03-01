@@ -121,24 +121,21 @@ int main()
 
 	IPC::SetTargetProcess(ProcessID);
 
-	if( DLLInjectRemote(ProcessID, GetRunningDirectory() + L"\\" + DLLFile) )
-	{
-		Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
-		std::cout << "Success!" << std::endl;
-		while( true )
-		{
-			while( IPC::MessageCount() > 0 )
-			{
-				std::wcout << IPC::PopMessage() << std::endl;
-			}
-		}
-		system("pause");
-	}
-	else
+	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L"\\" + DLLFile) )
 	{
 		Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
 		std::cout << "Failed" << std::endl;
 		system("pause");
+	}
+	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
+	std::cout << "Success!" << std::endl;
+
+	while( true )
+	{
+		while( IPC::MessageCount() > 0 )
+		{
+			std::wcout << IPC::PopMessage() << std::endl;
+		}
 	}
 
 	return EXIT_SUCCESS;
