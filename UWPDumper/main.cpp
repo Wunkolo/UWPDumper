@@ -46,6 +46,14 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	IPC::PushMessage(UWP::Current::GetFullName());
 	IPC::PushMessage(UWP::Current::GetFamilyName());
 
+	for( auto& Entry : fs::recursive_directory_iterator(".") )
+	{
+		if( fs::is_regular_file(Entry.path()) )
+		{
+			IPC::PushMessage(Entry.path().wstring() + L" | " + std::to_wstring(fs::file_size(Entry.path())));
+		}
+	}
+
 	try
 	{
 		fs::copy(
