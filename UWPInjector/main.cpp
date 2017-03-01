@@ -125,7 +125,14 @@ int main()
 	{
 		Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 		std::cout << "Success!" << std::endl;
-		std::cout << IPC::PopMessage() << std::endl;
+		while( true )
+		{
+			while( IPC::MessageCount() > 0 )
+			{
+				std::wcout << IPC::PopMessage().String << std::endl;
+			}
+		}
+		system("pause");
 	}
 	else
 	{

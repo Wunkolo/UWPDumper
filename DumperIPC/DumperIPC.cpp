@@ -1,9 +1,74 @@
 #include "DumperIPC.hpp"
+
+#include <array>
 #include <atomic>
 #include <thread>
 
-/// Shared region
+/// API
+namespace IPC
+{
+/// IPC Message Queue
+
+MessageEntry::MessageEntry()
+{
+}
+
+MessageEntry::MessageEntry(const wchar_t* String)
+{
+	wcscpy_s(this->String, MessageEntry::StringSize, String);
+}
+
+template<typename QueueType, std::size_t PoolSize>
+class AtomicQueue
+{
+public:
+	using Type = QueueType;
+	static constexpr std::size_t MaxSize = PoolSize;
+	AtomicQueue()
+		:
+		Head(0),
+		Tail(0)
+	{
+	}
+	~AtomicQueue()
+	{
+	}
+	void Enqueue(const Type& Entry)
+	{
+		while( Mutex.test_and_set(std::memory_order_acquire) ) {}
+		Entries[Tail] = Entry;
+		Tail = (Tail + 1) % MaxSize;
+		Mutex.clear(std::memory_order_release);
+	}
+
+	Type Dequeue()
+	{
+		Type Temp;
+		while( Mutex.test_and_set(std::memory_order_acquire) ) {}
+		Temp = Entries[Head];
+		Head = (Head + 1) % MaxSize;
+		Mutex.clear(std::memory_order_release);
+		return Temp;
+	}
+	std::size_t Size() const
+	{
+		return Tail - Head;
+	}
+
+	bool Empty() const
+	{
+		return Head == Tail;
+	}
+private:
+	std::array<Type, MaxSize> Entries = { Type() };
+	std::size_t Head = 0;
+	std::size_t Tail = 0;
+	std::atomic_flag Mutex = ATOMIC_FLAG_INIT;
+};
+
 #pragma data_seg("SHARED")
+AtomicQueue<MessageEntry, 1024> MessagePool = {};
+std::atomic<std::size_t> CurMessageCount = 0;
 
 // The process we are sending our data to
 std::atomic<std::uint32_t> ClientProcess(0);
@@ -11,23 +76,10 @@ std::atomic<std::uint32_t> ClientProcess(0);
 // The target UWP process we wish to dump
 std::atomic<std::uint32_t> TargetProcess(0);
 
-struct StringEntry
-{
-	constexpr static std::size_t StringSize = 1024;
-	bool Active;
-	char String[StringSize];
-};
-
-std::atomic_flag StringPoolMutex = ATOMIC_FLAG_INIT;
-constexpr static std::size_t PoolSize = 1024;
-StringEntry StringStack[PoolSize] = { {false,0} };
-
 #pragma data_seg()
 #pragma comment(linker, "/section:SHARED,RWS")
 ///
 
-namespace IPC
-{
 void SetClientProcess(std::uint32_t ProcessID)
 {
 	ClientProcess = ProcessID;
@@ -48,40 +100,25 @@ std::uint32_t GetTargetProcess()
 	return TargetProcess;
 }
 
-void PushMessage(const char* Message)
+void PushMessage(const wchar_t* Message)
 {
-	while( StringPoolMutex.test_and_set(std::memory_order_acquire) )
-	{
-		std::this_thread::yield();
-	}
-
-	std::size_t i = 0;
-	while( StringStack[i++].Active == true && (i < PoolSize) ) {}
-
-	StringStack[i].Active = true;
-	strcpy_s(StringStack[i].String, StringEntry::StringSize, Message);
-
-	StringPoolMutex.clear(std::memory_order_release);
+	PushMessage(MessageEntry(Message));
 }
 
-const char* PopMessage()
+void PushMessage(const MessageEntry& Message)
 {
-	const char* Message = nullptr;
-	while( StringPoolMutex.test_and_set(std::memory_order_acquire) )
-	{
-		std::this_thread::yield();
-	}
+	MessagePool.Enqueue(Message);
+	++CurMessageCount;
+}
 
-	std::size_t i = 0;
-	while( StringStack[i++].Active == true ) {}
+MessageEntry PopMessage()
+{
+	--CurMessageCount;
+	return MessagePool.Dequeue();
+}
 
-	if( i < PoolSize )
-	{
-		Message = StringStack[i].String;
-		StringStack[i].Active = false;
-	}
-
-	StringPoolMutex.clear(std::memory_order_release);
-	return Message;
+std::size_t MessageCount()
+{
+	return CurMessageCount;
 }
 }

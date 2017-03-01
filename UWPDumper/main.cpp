@@ -24,8 +24,6 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 		std::ios::trunc
 	);
 
-	IPC::PushMessage("Honk");
-
 	LogFile << "UWPDumper Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
 	LogFile << "\t-https://github.com/Wunkolo/UWPDumper\n";
 	LogFile << std::wstring(80, '-') << std::endl;
@@ -70,7 +68,7 @@ int32_t __stdcall DllMain(HINSTANCE hDLL, uint32_t Reason, void *Reserved)
 	{
 		if( IPC::GetTargetProcess() == GetCurrentProcessId() )
 		{
-			// we are the target process to be dumped
+			// We are the target process to be dumped
 			CreateThread(
 				nullptr,
 				0,
