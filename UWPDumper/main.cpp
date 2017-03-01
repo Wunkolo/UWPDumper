@@ -12,6 +12,8 @@ namespace fs = std::experimental::filesystem;
 
 #include "UWP.hpp"
 
+#include "DumperIPC.hpp"
+
 uint32_t __stdcall DumperThread(void *DLLHandle)
 {
 	std::wstring DumpPath = fs::path(UWP::Current::Storage::GetTempStatePath()) / L"DUMP";
@@ -21,6 +23,8 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 		fs::path(UWP::Current::Storage::GetTempStatePath()) / L"Log.txt",
 		std::ios::trunc
 	);
+
+	IPC::PushMessage("Honk");
 
 	LogFile << "UWPDumper Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
 	LogFile << "\t-https://github.com/Wunkolo/UWPDumper\n";
@@ -64,14 +68,18 @@ int32_t __stdcall DllMain(HINSTANCE hDLL, uint32_t Reason, void *Reserved)
 	{
 	case DLL_PROCESS_ATTACH:
 	{
-		CreateThread(
-			nullptr,
-			0,
-			reinterpret_cast<unsigned long(__stdcall*)(void*)>(&DumperThread),
-			hDLL,
-			0,
-			nullptr
-		);
+		if( IPC::GetTargetProcess() == GetCurrentProcessId() )
+		{
+			// we are the target process to be dumped
+			CreateThread(
+				nullptr,
+				0,
+				reinterpret_cast<unsigned long(__stdcall*)(void*)>(&DumperThread),
+				hDLL,
+				0,
+				nullptr
+			);
+		}
 	}
 	case DLL_PROCESS_DETACH:
 	case DLL_THREAD_ATTACH:

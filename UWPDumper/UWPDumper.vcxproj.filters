@@ -21,9 +21,15 @@
     <ClCompile Include="UWP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\DumperIPC\DumperIPC.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UWP.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DumperIPC\DumperIPC.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

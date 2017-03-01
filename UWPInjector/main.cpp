@@ -16,6 +16,10 @@
 #include <atlbase.h>
 #include <appmodel.h>
 
+// IPC
+#include "DumperIPC.hpp"
+
+// Console
 #include "MinConsole.hpp"
 
 namespace Console = MinConsole;
@@ -44,6 +48,8 @@ int main()
 	Console::SetTextColor(Console::Color::Info);
 
 	uint32_t ProcessID = 0;
+
+	IPC::SetClientProcess(GetCurrentProcessId());
 
 	std::cout << "Currently running UWP Apps:" << std::endl;
 	void* ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -113,10 +119,13 @@ int main()
 
 	SetAccessControl(GetRunningDirectory() + L"\\" + DLLFile, L"S-1-15-2-1");
 
+	IPC::SetTargetProcess(ProcessID);
+
 	if( DLLInjectRemote(ProcessID, GetRunningDirectory() + L"\\" + DLLFile) )
 	{
 		Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 		std::cout << "Success!" << std::endl;
+		std::cout << IPC::PopMessage() << std::endl;
 	}
 	else
 	{
