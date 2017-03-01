@@ -8,15 +8,19 @@
 namespace IPC
 {
 /// IPC Message Queue
-
-MessageEntry::MessageEntry()
+struct MessageEntry
 {
-}
+	MessageEntry()
+	{
+	}
+	MessageEntry(const wchar_t* String)
+	{
+		wcscpy_s(this->String, MessageEntry::StringSize, String);
+	}
 
-MessageEntry::MessageEntry(const wchar_t* String)
-{
-	wcscpy_s(this->String, MessageEntry::StringSize, String);
-}
+	static constexpr std::size_t StringSize = 1024;
+	wchar_t String[StringSize];
+};
 
 template<typename QueueType, std::size_t PoolSize>
 class AtomicQueue
@@ -105,17 +109,21 @@ std::uint32_t GetTargetProcess()
 
 void PushMessage(const wchar_t* Message)
 {
-	PushMessage(MessageEntry(Message));
+	PushMessage(std::wstring(Message));
 }
 
-void PushMessage(const MessageEntry& Message)
+void PushMessage(const std::wstring& Message)
 {
-	MessagePool.Enqueue(Message);
+	MessagePool.Enqueue(MessageEntry(Message.c_str()));
 }
 
-MessageEntry PopMessage()
+std::wstring PopMessage()
 {
-	return MessagePool.Dequeue();
+	MessageEntry Entry = MessagePool.Dequeue();
+	return std::wstring(
+		Entry.String,
+		wcslen(Entry.String)
+	);
 }
 
 std::size_t MessageCount()

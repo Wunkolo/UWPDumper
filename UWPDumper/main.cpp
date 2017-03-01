@@ -39,6 +39,13 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	LogFile << "Dumping files..." << std::endl;
 	LogFile << "Dump path:\n\t" << DumpPath << std::endl;
 
+	IPC::PushMessage(UWP::Current::GetPublisher());
+	IPC::PushMessage(UWP::Current::GetPublisherID());
+	IPC::PushMessage(UWP::Current::Storage::GetPublisherPath());
+	IPC::PushMessage(UWP::Current::GetPackagePath());
+	IPC::PushMessage(UWP::Current::GetFullName());
+	IPC::PushMessage(UWP::Current::GetFamilyName());
+
 	try
 	{
 		fs::copy(

@@ -13,15 +13,6 @@
 /// Exports
 namespace IPC
 {
-struct MessageEntry
-{
-	MessageEntry();
-	MessageEntry(const wchar_t* String);
-
-	static constexpr std::size_t StringSize = 1024;
-	wchar_t String[StringSize];
-};
-
 IPC_API void SetClientProcess(std::uint32_t ProcessID);
 IPC_API std::uint32_t GetClientProcess();
 IPC_API void SetTargetProcess(std::uint32_t ProcessID);
@@ -29,7 +20,7 @@ IPC_API std::uint32_t GetTargetProcess();
 
 // String messaging
 IPC_API void PushMessage(const wchar_t* Message);
-IPC_API void PushMessage(const MessageEntry& Message);
-IPC_API MessageEntry PopMessage();
+IPC_API void PushMessage(const std::wstring& Message);
+IPC_API std::wstring PopMessage();
 IPC_API std::size_t MessageCount();
 }
