@@ -3,6 +3,7 @@
 #include <array>
 #include <atomic>
 #include <thread>
+#include <cstdarg>
 
 /// API
 namespace IPC
@@ -107,14 +108,21 @@ std::uint32_t GetTargetProcess()
 	return TargetProcess;
 }
 
-void PushMessage(const wchar_t* Message)
+void PushMessage(const wchar_t* Format, ...)
 {
-	PushMessage(std::wstring(Message));
-}
+	std::va_list Args;
+	MessageEntry Entry;
 
-void PushMessage(const std::wstring& Message)
-{
-	MessagePool.Enqueue(MessageEntry(Message.c_str()));
+	va_start(Args, Format);
+	vswprintf_s(
+		Entry.String,
+		Entry.StringSize,
+		Format,
+		Args
+	);
+	va_end(Args);
+
+	MessagePool.Enqueue(Entry);
 }
 
 std::wstring PopMessage()

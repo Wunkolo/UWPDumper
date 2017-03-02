@@ -41,14 +41,14 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	LogFile << "Dumping files..." << std::endl;
 	LogFile << "Dump path:\n\t" << DumpPath << std::endl;
 
-	IPC::PushMessage(L"Publisher:\n\t" + UWP::Current::GetPublisher());
-	IPC::PushMessage(L"Publisher ID:\n\t" + UWP::Current::GetPublisherID());
-	IPC::PushMessage(L"Publisher Path:\n\t" + UWP::Current::Storage::GetPublisherPath());
-	IPC::PushMessage(L"Package Path:\n\t" + UWP::Current::GetPackagePath());
-	IPC::PushMessage(L"Package Name:\n\t" + UWP::Current::GetFullName());
-	IPC::PushMessage(L"Family Name:\n\t" + UWP::Current::GetFamilyName());
+	IPC::PushMessage(L"Publisher:\n\t%s\n", UWP::Current::GetPublisher().c_str());
+	IPC::PushMessage(L"Publisher ID:\n\t%s\n", UWP::Current::GetPublisherID().c_str());
+	IPC::PushMessage(L"Publisher Path:\n\t%s\n", UWP::Current::Storage::GetPublisherPath().c_str());
+	IPC::PushMessage(L"Package Path:\n\t%s\n", UWP::Current::GetPackagePath().c_str());
+	IPC::PushMessage(L"Package Name:\n\t%s\n", UWP::Current::GetFullName().c_str());
+	IPC::PushMessage(L"Family Name:\n\t%s\n", UWP::Current::GetFamilyName().c_str());
 
-	IPC::PushMessage(L"Dump Path:\n\t" + DumpPath);
+	IPC::PushMessage(L"Dump Path:\n\t%s", DumpPath.c_str());
 
 	for( auto& Entry : fs::recursive_directory_iterator(".") )
 	{
@@ -56,7 +56,7 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 		{
 			const fs::path WritePath = DumpPath + Entry.path().wstring().substr(1);
 
-			IPC::PushMessage(L"\t" + Entry.path().wstring().substr(1));
+			IPC::PushMessage(L"\t%s\r", Entry.path().wstring().substr(1).c_str());
 
 			fs::create_directories(WritePath.parent_path());
 			fs::copy(
