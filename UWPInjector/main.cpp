@@ -134,7 +134,7 @@ int main()
 	{
 		while( IPC::MessageCount() > 0 )
 		{
-			std::wcout << IPC::PopMessage() << std::endl;
+			std::wcout << IPC::PopMessage();
 		}
 	}
 
