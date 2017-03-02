@@ -7,6 +7,11 @@
 #include <Windows.h>
 #include <ShlObj.h>
 
+#define WIDEIFYIMP(x) L##x
+#define WIDEIFY(x) WIDEIFYIMP(x)
+
+#define Wrap 50
+
 #include <queue>
 
 #include <experimental/filesystem>
@@ -41,7 +46,7 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	//LogFile << "Dumping files..." << std::endl;
 	//LogFile << "Dump path:\n\t" << DumpPath << std::endl;
 
-	IPC::PushMessage(L"UWPDumper Build date(%s : %s)\n", __DATE__, __TIME__);
+	IPC::PushMessage(L"UWPDumper Build date(%ls : %ls)\n", WIDEIFY(__DATE__), WIDEIFY(__TIME__));
 	IPC::PushMessage(L"\t-https://github.com/Wunkolo/UWPDumper\n");
 	IPC::PushMessage(L"Publisher:\n\t%s\n", UWP::Current::GetPublisher().c_str());
 	IPC::PushMessage(L"Publisher ID:\n\t%s\n", UWP::Current::GetPublisherID().c_str());
@@ -67,7 +72,6 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	std::size_t i = 0;
 	for( const auto& File : FileList )
 	{
-	#define Wrap 50
 		const fs::path WritePath = DumpPath + File.path().wstring().substr(1);
 		const std::wstring ReadPath = File.path().wstring();
 		IPC::PushMessage(
