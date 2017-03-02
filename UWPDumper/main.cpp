@@ -39,12 +39,12 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	LogFile << "Dumping files..." << std::endl;
 	LogFile << "Dump path:\n\t" << DumpPath << std::endl;
 
-	IPC::PushMessage(UWP::Current::GetPublisher());
-	IPC::PushMessage(UWP::Current::GetPublisherID());
-	IPC::PushMessage(UWP::Current::Storage::GetPublisherPath());
-	IPC::PushMessage(UWP::Current::GetPackagePath());
-	IPC::PushMessage(UWP::Current::GetFullName());
-	IPC::PushMessage(UWP::Current::GetFamilyName());
+	IPC::PushMessage(L"Publisher:\n\t" + UWP::Current::GetPublisher());
+	IPC::PushMessage(L"Publisher ID:\n\t" + UWP::Current::GetPublisherID());
+	IPC::PushMessage(L"Publisher Path:\n\t" + UWP::Current::Storage::GetPublisherPath());
+	IPC::PushMessage(L"Package Path:\n\t" + UWP::Current::GetPackagePath());
+	IPC::PushMessage(L"Package Name:\n\t" + UWP::Current::GetFullName());
+	IPC::PushMessage(L"Family Name:\n\t" + UWP::Current::GetFamilyName());
 
 	for( auto& Entry : fs::recursive_directory_iterator(".") )
 	{

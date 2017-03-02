@@ -40,7 +40,7 @@ int main()
 	SetConsoleOutputCP(437);
 
 	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
-	std::wcout << "UWPInjector Build date (" << __DATE__ << " : " << __TIME__ << ")" << std::endl;
+	std::wcout << "UWPInjector Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
 	Console::SetTextColor(Console::Color::Input);
 	std::wcout << "\t-https://github.com/Wunkolo/UWPDumper\n";
 	Console::SetTextColor(Console::Color::Magenta);
@@ -117,11 +117,11 @@ int main()
 	std::cin >> ProcessID;
 	Console::SetTextColor(Console::Color::Info);
 
-	SetAccessControl(GetRunningDirectory() + L"\\" + DLLFile, L"S-1-15-2-1");
+	SetAccessControl(GetRunningDirectory() + L'\\' + DLLFile, L"S-1-15-2-1");
 
 	IPC::SetTargetProcess(ProcessID);
 
-	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L"\\" + DLLFile) )
+	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile) )
 	{
 		Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
 		std::cout << "Failed" << std::endl;
