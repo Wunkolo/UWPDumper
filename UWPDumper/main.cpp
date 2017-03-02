@@ -7,6 +7,8 @@
 #include <Windows.h>
 #include <ShlObj.h>
 
+#include <queue>
+
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 
@@ -46,28 +48,39 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	IPC::PushMessage(L"Package Name:\n\t" + UWP::Current::GetFullName());
 	IPC::PushMessage(L"Family Name:\n\t" + UWP::Current::GetFamilyName());
 
+	IPC::PushMessage(L"Dump Path:\n\t" + DumpPath);
+
 	for( auto& Entry : fs::recursive_directory_iterator(".") )
 	{
 		if( fs::is_regular_file(Entry.path()) )
 		{
-			IPC::PushMessage(Entry.path().wstring() + L" | " + std::to_wstring(fs::file_size(Entry.path())));
+			const fs::path WritePath = DumpPath + Entry.path().wstring().substr(1);
+
+			IPC::PushMessage(L"\t" + Entry.path().wstring().substr(1));
+
+			fs::create_directories(WritePath.parent_path());
+			fs::copy(
+				Entry.path(),
+				WritePath,
+				fs::copy_options::update_existing
+			);
 		}
 	}
 
-	try
-	{
-		fs::copy(
-			UWP::Current::GetPackagePath(),
-			DumpPath,
-			fs::copy_options::recursive | fs::copy_options::update_existing
-		);
-	}
-	catch( fs::filesystem_error &e )
-	{
-		LogFile << "Error dumping: " << e.what() << std::endl;
-		LogFile << "\tOperand 1: " << e.path1() << std::endl;
-		LogFile << "\tOperand 2: " << e.path2() << std::endl;
-	}
+	//try
+	//{
+	//	fs::copy(
+	//		UWP::Current::GetPackagePath(),
+	//		DumpPath,
+	//		fs::copy_options::recursive | fs::copy_options::update_existing
+	//	);
+	//}
+	//catch( fs::filesystem_error &e )
+	//{
+	//	LogFile << "Error dumping: " << e.what() << std::endl;
+	//	LogFile << "\tOperand 1: " << e.path1() << std::endl;
+	//	LogFile << "\tOperand 2: " << e.path2() << std::endl;
+	//}
 	LogFile << "Dumping complete!" << std::endl;
 
 	FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(DLLHandle), 0);
