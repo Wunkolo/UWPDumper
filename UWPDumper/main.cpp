@@ -63,7 +63,10 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	{
 		if( fs::is_regular_file(Entry.path()) )
 		{
-			FileList.push_back(Entry);
+			if( (Entry.path().wstring().find(L".exe") != std::string::npos) || (Entry.path().wstring().find(L".dll") != std::string::npos) )
+			{
+				FileList.push_back(Entry);
+			}
 		}
 	}
 
@@ -73,7 +76,8 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	for( const auto& File : FileList )
 	{
 		const fs::path WritePath = DumpPath + File.path().wstring().substr(1);
-		const std::wstring ReadPath = File.path().wstring();
+
+		const std::wstring ReadPath = File.path().wstring().substr(1);
 		IPC::PushMessage(
 			L"%*.*s %*.1f%%\n",
 			Wrap, Wrap,
@@ -83,15 +87,26 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 		);
 
 		fs::create_directories(WritePath.parent_path());
-		fs::copy(
-			File.path(),
-			WritePath,
-			fs::copy_options::update_existing
-		);
+		try
+		{
+			fs::copy(
+				File.path(),
+				WritePath,
+				fs::copy_options::update_existing
+			);
+		}
+		catch( const fs::filesystem_error &e )
+		{
+			IPC::PushMessage(
+				L"Error copying: %s (%s)\n",
+				File.path().c_str(),
+				e.what()
+			);
+		}
 		i++;
 	}
 
-	IPC::PushMessage(L"Dump complete Path:\n\t%s\n", DumpPath.c_str());
+	IPC::PushMessage(L"Dump complete!\n\tPath:\n\t%s\n", DumpPath.c_str());
 
 	//try
 	//{
