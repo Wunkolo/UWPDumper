@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <string>
 #include <memory>
+#include <chrono>
 
 #include <windows.h>
 #include <psapi.h> //GetModuleFileNameEx
@@ -16,6 +17,10 @@
 #include <atlbase.h>
 #include <appmodel.h>
 
+// IPC
+#include "DumperIPC.hpp"
+
+// Console
 #include "MinConsole.hpp"
 
 namespace Console = MinConsole;
@@ -36,7 +41,7 @@ int main()
 	SetConsoleOutputCP(437);
 
 	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
-	std::wcout << "UWPInjector Build date (" << __DATE__ << " : " << __TIME__ << ")" << std::endl;
+	std::wcout << "UWPInjector Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
 	Console::SetTextColor(Console::Color::Input);
 	std::wcout << "\t-https://github.com/Wunkolo/UWPDumper\n";
 	Console::SetTextColor(Console::Color::Magenta);
@@ -44,6 +49,8 @@ int main()
 	Console::SetTextColor(Console::Color::Info);
 
 	uint32_t ProcessID = 0;
+
+	IPC::SetClientProcess(GetCurrentProcessId());
 
 	std::cout << "Currently running UWP Apps:" << std::endl;
 	void* ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -111,20 +118,39 @@ int main()
 	std::cin >> ProcessID;
 	Console::SetTextColor(Console::Color::Info);
 
-	SetAccessControl(GetRunningDirectory() + L"\\" + DLLFile, L"S-1-15-2-1");
+	SetAccessControl(GetRunningDirectory() + L'\\' + DLLFile, L"S-1-15-2-1");
 
-	if( DLLInjectRemote(ProcessID, GetRunningDirectory() + L"\\" + DLLFile) )
-	{
-		Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
-		std::cout << "Success!" << std::endl;
-	}
-	else
+	IPC::SetTargetProcess(ProcessID);
+
+	std::cout << "Injecting into remote process: ";
+	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile) )
 	{
 		Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
 		std::cout << "Failed" << std::endl;
 		system("pause");
 	}
+	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
+	std::cout << "Success!" << std::endl;
 
+	std::cout << "Waiting for remote thread:..." << std::endl;
+	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
+	while( IPC::GetTargetThread() == IPC::InvalidThread )
+	{
+		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
+		{
+			std::cout << "Remote thread wait timeout: Unable to find target thread" << std::endl;
+			return EXIT_FAILURE;
+		}
+	}
+
+	while( IPC::GetTargetThread() != IPC::InvalidThread )
+	{
+		while( IPC::MessageCount() > 0 )
+		{
+			std::wcout << IPC::PopMessage();
+		}
+	}
+	system("pause");
 	return EXIT_SUCCESS;
 }
 
