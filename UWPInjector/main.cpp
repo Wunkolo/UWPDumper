@@ -132,17 +132,24 @@ int main()
 	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 	std::cout << "Success!" << std::endl;
 
-	std::cout << "Waiting for remote thread:..." << std::endl;
+	Console::SetTextColor(Console::Color::Info);
+	std::cout << "Waiting for remote thread IPC:" << std::endl;
 	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
 	while( IPC::GetTargetThread() == IPC::InvalidThread )
 	{
 		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
 		{
+			Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
 			std::cout << "Remote thread wait timeout: Unable to find target thread" << std::endl;
 			return EXIT_FAILURE;
 		}
 	}
 
+	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
+
+	Console::SetTextColor(
+		Console::Color::Cyan | Console::Color::Bright
+	);
 	while( IPC::GetTargetThread() != IPC::InvalidThread )
 	{
 		while( IPC::MessageCount() > 0 )
