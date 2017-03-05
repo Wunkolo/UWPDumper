@@ -84,6 +84,8 @@ std::atomic<std::uint32_t> ClientProcess(0);
 // The target UWP process we wish to dump
 std::atomic<std::uint32_t> TargetProcess(0);
 
+std::atomic<std::int32_t> TargetThread(InvalidThread);
+
 #pragma data_seg()
 #pragma comment(linker, "/section:SHARED,RWS")
 ///
@@ -106,6 +108,21 @@ void SetTargetProcess(std::uint32_t ProcessID)
 std::uint32_t GetTargetProcess()
 {
 	return TargetProcess;
+}
+
+IPC_API void SetTargetThread(std::int32_t ThreadID)
+{
+	TargetThread = ThreadID;
+}
+
+IPC_API std::int32_t GetTargetThread()
+{
+	return TargetThread;
+}
+
+IPC_API void ClearTargetThread()
+{
+	TargetThread = InvalidThread;
 }
 
 void PushMessage(const wchar_t* Format, ...)

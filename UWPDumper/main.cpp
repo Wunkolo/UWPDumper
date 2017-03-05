@@ -25,26 +25,7 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 {
 	std::wstring DumpPath = fs::path(UWP::Current::Storage::GetTempStatePath()) / L"DUMP";
 
-	//std::wofstream LogFile;
-	//LogFile.open(
-	//	fs::path(UWP::Current::Storage::GetTempStatePath()) / L"Log.txt",
-	//	std::ios::trunc
-	//);
-
-	//LogFile << "UWPDumper Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
-	//LogFile << "\t-https://github.com/Wunkolo/UWPDumper\n";
-	//LogFile << std::wstring(80, '-') << std::endl;
-
-	//LogFile << "Publisher:\n\t" << UWP::Current::GetPublisher() << std::endl;
-	//LogFile << "Publisher ID:\n\t" << UWP::Current::GetPublisherID() << std::endl;
-	//LogFile << "Publisher Path:\n\t" << UWP::Current::Storage::GetPublisherPath() << std::endl;
-
-	//LogFile << "Package Path:\n\t" << UWP::Current::GetPackagePath() << std::endl;
-	//LogFile << "Package Name:\n\t" << UWP::Current::GetFullName() << std::endl;
-	//LogFile << "Family Name:\n\t" << UWP::Current::GetFamilyName() << std::endl;
-
-	//LogFile << "Dumping files..." << std::endl;
-	//LogFile << "Dump path:\n\t" << DumpPath << std::endl;
+	IPC::SetTargetThread(GetCurrentThreadId());
 
 	IPC::PushMessage(L"UWPDumper Build date(%ls : %ls)\n", WIDEIFY(__DATE__), WIDEIFY(__TIME__));
 	IPC::PushMessage(L"\t-https://github.com/Wunkolo/UWPDumper\n");
@@ -63,10 +44,7 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	{
 		if( fs::is_regular_file(Entry.path()) )
 		{
-			if( (Entry.path().wstring().find(L".exe") != std::string::npos) || (Entry.path().wstring().find(L".dll") != std::string::npos) )
-			{
-				FileList.push_back(Entry);
-			}
+			FileList.push_back(Entry);
 		}
 	}
 
@@ -102,27 +80,13 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 				File.path().c_str(),
 				e.what()
 			);
+			return EXIT_FAILURE;
 		}
 		i++;
 	}
 
 	IPC::PushMessage(L"Dump complete!\n\tPath:\n\t%s\n", DumpPath.c_str());
-
-	//try
-	//{
-	//	fs::copy(
-	//		UWP::Current::GetPackagePath(),
-	//		DumpPath,
-	//		fs::copy_options::recursive | fs::copy_options::update_existing
-	//	);
-	//}
-	//catch( fs::filesystem_error &e )
-	//{
-	//	LogFile << "Error dumping: " << e.what() << std::endl;
-	//	LogFile << "\tOperand 1: " << e.path1() << std::endl;
-	//	LogFile << "\tOperand 2: " << e.path2() << std::endl;
-	//}
-	//LogFile << "Dumping complete!" << std::endl;
+	IPC::ClearTargetThread();
 
 	FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(DLLHandle), 0);
 

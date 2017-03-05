@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <string>
 #include <memory>
+#include <chrono>
 
 #include <windows.h>
 #include <psapi.h> //GetModuleFileNameEx
@@ -130,14 +131,24 @@ int main()
 	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 	std::cout << "Success!" << std::endl;
 
-	while( true )
+	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
+	while( IPC::GetTargetThread() == IPC::InvalidThread )
+	{
+		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
+		{
+			std::cout << "Remote thread wait timeout: Unable to find target thread" << std::endl;
+			return EXIT_FAILURE;
+		}
+	}
+
+	while( IPC::GetTargetThread() != IPC::InvalidThread )
 	{
 		while( IPC::MessageCount() > 0 )
 		{
 			std::wcout << IPC::PopMessage();
 		}
 	}
-
+	system("pause");
 	return EXIT_SUCCESS;
 }
 
