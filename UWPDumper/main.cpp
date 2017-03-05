@@ -10,8 +10,6 @@
 #define WIDEIFYIMP(x) L##x
 #define WIDEIFY(x) WIDEIFYIMP(x)
 
-#define Wrap 50
-
 #include <queue>
 
 #include <experimental/filesystem>
@@ -57,10 +55,12 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 
 		const std::wstring ReadPath = File.path().wstring().substr(1);
 		IPC::PushMessage(
-			L"%*.*s %*.1f%%\n",
-			Wrap, Wrap,
-			ReadPath.c_str() + (ReadPath.length() > Wrap ? (ReadPath.length() - Wrap) : 0),
-			Wrap,
+			L"%*.*s %*.u bytes %*.1f%%\n",
+			60, 60,
+			ReadPath.c_str() + (ReadPath.length() > 60 ? (ReadPath.length() - (60)) : 0),
+			15,
+			fs::file_size(File),
+			30,
 			(i / static_cast<float>(FileList.size())) * 100
 		);
 

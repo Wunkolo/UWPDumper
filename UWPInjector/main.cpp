@@ -122,6 +122,7 @@ int main()
 
 	IPC::SetTargetProcess(ProcessID);
 
+	std::cout << "Injecting into remote process: ";
 	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile) )
 	{
 		Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
@@ -131,6 +132,7 @@ int main()
 	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 	std::cout << "Success!" << std::endl;
 
+	std::cout << "Waiting for remote thread:..." << std::endl;
 	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
 	while( IPC::GetTargetThread() == IPC::InvalidThread )
 	{
