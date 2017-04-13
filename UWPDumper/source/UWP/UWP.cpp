@@ -110,22 +110,18 @@ std::wstring UWP::Current::GetArchitecture()
 		case APPX_PACKAGE_ARCHITECTURE_ARM:
 		{
 			return L"ARM";
-			break;
 		}
 		case APPX_PACKAGE_ARCHITECTURE_X86:
 		{
 			return L"x86";
-			break;
 		}
 		case APPX_PACKAGE_ARCHITECTURE_X64:
 		{
 			return L"x64";
-			break;
 		}
 		case APPX_PACKAGE_ARCHITECTURE_NEUTRAL:
 		{
 			return L"Neutral";
-			break;
 		}
 		}
 	}
