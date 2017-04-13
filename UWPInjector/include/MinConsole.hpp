@@ -32,41 +32,41 @@ enum class Color : uint8_t
 
 typedef std::underlying_type<Color>::type ColorType;
 
-inline Color operator| (Color Left, Color Right)
+inline Color operator|(Color Left, Color Right)
 {
 	return static_cast<Color>(
 		static_cast<ColorType>(Left)
 		| static_cast<ColorType>(Right)
-		);
+	);
 }
 
-inline Color operator|= (Color Left, Color Right)
+inline Color operator|=(Color Left, Color Right)
 {
 	Left = static_cast<Color>(
 		static_cast<ColorType>(Left)
 		| static_cast<ColorType>(Right)
-		);
+	);
 	return Left;
 }
 
-inline Color operator^ (Color Left, Color Right)
+inline Color operator^(Color Left, Color Right)
 {
 	return static_cast<Color>(
 		static_cast<ColorType>(Left)
 		^ static_cast<ColorType>(Right)
-		);
+	);
 }
 
-inline Color operator^= (Color Left, Color Right)
+inline Color operator^=(Color Left, Color Right)
 {
 	Left = static_cast<Color>(
 		static_cast<ColorType>(Left)
 		^ static_cast<ColorType>(Right)
-		);
+	);
 	return Left;
 }
 
 void SetTextColor(Color NewColor);
 
-size_t GetWidth();
+std::size_t GetWidth();
 }

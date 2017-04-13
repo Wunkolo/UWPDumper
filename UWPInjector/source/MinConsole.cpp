@@ -23,7 +23,7 @@ void SetTextColor(Color NewColor)
 	);
 }
 
-size_t GetWidth()
+std::size_t GetWidth()
 {
 	CONSOLE_SCREEN_BUFFER_INFO ConsoleInfo;
 	if( GetConsoleScreenBufferInfo(
