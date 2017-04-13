@@ -48,9 +48,8 @@ public:
 
 	Type Dequeue()
 	{
-		Type Temp;
 		while( Mutex.test_and_set(std::memory_order_acquire) ) {}
-		Temp = Entries[Head];
+		Type Temp = Entries[Head];
 		Head = (Head + 1) % MaxSize;
 		Mutex.clear(std::memory_order_release);
 		return Temp;
