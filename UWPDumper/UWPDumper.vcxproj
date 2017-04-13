@@ -89,7 +89,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\DumperIPC;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>IPC_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -132,13 +132,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\DumperIPC\DumperIPC.cpp" />
+    <ClCompile Include="source\UWP\DumperIPC.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="UWP.cpp" />
+    <ClCompile Include="source\UWP\UWP.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\DumperIPC\DumperIPC.hpp" />
-    <ClInclude Include="UWP.hpp" />
+    <ClInclude Include="include\UWP\DumperIPC.hpp" />
+    <ClInclude Include="include\UWP\UWP.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

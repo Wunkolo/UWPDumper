@@ -18,18 +18,18 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UWP.cpp">
+    <ClCompile Include="source\UWP\UWP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\DumperIPC\DumperIPC.cpp">
+    <ClCompile Include="source\UWP\DumperIPC.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="UWP.hpp">
+    <ClInclude Include="include\UWP\UWP.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\DumperIPC\DumperIPC.hpp">
+    <ClInclude Include="include\UWP\DumperIPC.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

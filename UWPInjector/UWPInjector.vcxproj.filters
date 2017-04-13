@@ -15,15 +15,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="source\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MinConsole.cpp">
+    <ClCompile Include="source\MinConsole.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MinConsole.hpp">
+    <ClInclude Include="include\MinConsole.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

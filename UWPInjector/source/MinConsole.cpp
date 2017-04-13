@@ -1,4 +1,4 @@
-#include "MinConsole.hpp"
+#include <MinConsole.hpp>
 #include <Windows.h>
 
 namespace MinConsole

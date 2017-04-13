@@ -15,9 +15,9 @@
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 
-#include "UWP.hpp"
+#include <UWP/UWP.hpp>
 
-#include "DumperIPC.hpp"
+#include <UWP/DumperIPC.hpp>
 
 std::uint32_t __stdcall DumperThread(void *DLLHandle)
 {

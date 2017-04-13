@@ -1,4 +1,4 @@
-#include "DumperIPC.hpp"
+#include <UWP/DumperIPC.hpp>
 
 #include <array>
 #include <atomic>

@@ -18,7 +18,7 @@
 #include <appmodel.h>
 
 // IPC
-#include "DumperIPC.hpp"
+#include <UWP/DumperIPC.hpp>
 
 // Console
 #include "MinConsole.hpp"
