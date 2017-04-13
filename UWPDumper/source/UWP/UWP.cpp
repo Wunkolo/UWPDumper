@@ -9,14 +9,14 @@
 
 namespace
 {
-template<typename T, typename... Args>
+template< typename T, typename... Args >
 std::unique_ptr<T> make_unique(Args&&... args)
 {
 	return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
-template<typename T>
-void FreeDeleter(T *Data)
+template< typename T >
+void FreeDeleter(T* Data)
 {
 	free(Data);
 }
@@ -41,7 +41,7 @@ std::unique_ptr<PACKAGE_ID, decltype(&FreeDeleter<PACKAGE_ID>)> GetPackageIdenti
 	return std::unique_ptr<PACKAGE_ID, decltype(&FreeDeleter<PACKAGE_ID>)>(
 		nullptr,
 		FreeDeleter<PACKAGE_ID>
-		);
+	);
 }
 
 std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> GetPackageInfo()
@@ -54,10 +54,10 @@ std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> GetPackageIn
 	{
 		std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> PackageInfo(
 			reinterpret_cast<PACKAGE_INFO*>(malloc(Size)),
-			[](PACKAGE_INFO *PackageID)
-		{
-			free(PackageID);
-		}
+			[](PACKAGE_INFO* PackageID)
+			{
+				free(PackageID);
+			}
 		);
 
 		GetCurrentPackageInfo(
@@ -72,7 +72,7 @@ std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> GetPackageIn
 	return std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)>(
 		nullptr,
 		FreeDeleter<PACKAGE_INFO>
-		);
+	);
 }
 }
 
@@ -169,7 +169,7 @@ std::wstring UWP::Current::Storage::GetPublisherPath()
 	auto PackageID = GetPackageIdentifier();
 	if( PackageID )
 	{
-		wchar_t UserPath[MAX_PATH] = { 0 };
+		wchar_t UserPath[MAX_PATH] = {0};
 		SHGetSpecialFolderPathW(nullptr, UserPath, CSIDL_PROFILE, false);
 
 		std::wstring PublisherPath(UserPath);
@@ -184,12 +184,12 @@ std::wstring UWP::Current::Storage::GetPublisherPath()
 
 std::wstring UWP::Current::Storage::GetStoragePath()
 {
-	wchar_t UserPath[MAX_PATH] = { 0 };
+	wchar_t UserPath[MAX_PATH] = {0};
 	SHGetSpecialFolderPathW(nullptr, UserPath, CSIDL_PROFILE, false);
 
 	std::wstring StoragePath(UserPath);
 
-	StoragePath += L"\\AppData\\Local\\Packages\\" + UWP::Current::GetFamilyName();
+	StoragePath += L"\\AppData\\Local\\Packages\\" + GetFamilyName();
 
 	return StoragePath;
 }
