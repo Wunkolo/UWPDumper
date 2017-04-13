@@ -48,7 +48,7 @@ int main()
 	std::wcout << std::wstring(Console::GetWidth() - 1, '-') << std::endl;
 	Console::SetTextColor(Console::Color::Info);
 
-	uint32_t ProcessID = 0;
+	std::uint32_t ProcessID = 0;
 
 	IPC::SetClientProcess(GetCurrentProcessId());
 
@@ -68,8 +68,8 @@ int main()
 			);
 			if( ProcessHandle )
 			{
-				uint32_t NameLength = 0;
-				int32_t ProcessCode = GetPackageFamilyName(
+				std::uint32_t NameLength = 0;
+				std::int32_t ProcessCode = GetPackageFamilyName(
 					ProcessHandle,
 					&NameLength,
 					nullptr
@@ -227,8 +227,8 @@ void SetAccessControl(const std::wstring &ExecutableName, const wchar_t* AccessS
 
 bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 {
-	const size_t DLLPathSize = ((DLLpath.size() + 1) * sizeof(wchar_t));
-	uint32_t Result = 0;
+	const std::size_t DLLPathSize = ((DLLpath.size() + 1) * sizeof(wchar_t));
+	std::uint32_t Result = 0;
 	if( !ProcessID )
 	{
 		std::wcout << "Invalid Process ID: " << ProcessID << std::endl;

@@ -1,5 +1,5 @@
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstddef>
 #include <fstream>
 #include <iomanip>
 
@@ -19,7 +19,7 @@ namespace fs = std::experimental::filesystem;
 
 #include "DumperIPC.hpp"
 
-uint32_t __stdcall DumperThread(void *DLLHandle)
+std::uint32_t __stdcall DumperThread(void *DLLHandle)
 {
 	std::wstring DumpPath = fs::path(UWP::Current::Storage::GetTempStatePath()) / L"DUMP";
 
@@ -93,7 +93,7 @@ uint32_t __stdcall DumperThread(void *DLLHandle)
 	return EXIT_SUCCESS;
 }
 
-int32_t __stdcall DllMain(HINSTANCE hDLL, uint32_t Reason, void *Reserved)
+std::int32_t __stdcall DllMain(HINSTANCE hDLL, std::uint32_t Reason, void *Reserved)
 {
 	switch( Reason )
 	{
