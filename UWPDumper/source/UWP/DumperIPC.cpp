@@ -88,6 +88,7 @@ private:
 	std::atomic_flag Mutex = ATOMIC_FLAG_INIT;
 };
 
+////// Shared IPC Region //////////////////////////////////////////////////////
 #pragma data_seg("SHARED")
 AtomicQueue<MessageEntry, 1024> MessagePool = {};
 std::atomic<std::size_t> CurMessageCount = 0;
@@ -102,7 +103,7 @@ std::atomic<std::int32_t> TargetThread(InvalidThread);
 
 #pragma data_seg()
 #pragma comment(linker, "/section:SHARED,RWS")
-///
+///////////////////////////////////////////////////////////////////////////////
 
 void SetClientProcess(std::uint32_t ProcessID)
 {
