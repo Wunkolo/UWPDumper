@@ -8,7 +8,7 @@ void* GetOutputHandle()
 {
 	static void* Handle = nullptr;
 	std::once_flag HandleCached;
-	std::call_once(HandleCached, []()
+	std::call_once(HandleCached, []() noexcept -> void
 		{
 			Handle = GetStdHandle(STD_OUTPUT_HANDLE);
 		});
