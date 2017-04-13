@@ -228,7 +228,7 @@ void SetAccessControl(const std::wstring &ExecutableName, const wchar_t* AccessS
 bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 {
 	const std::size_t DLLPathSize = ((DLLpath.size() + 1) * sizeof(wchar_t));
-	std::uint32_t Result = 0;
+	std::uint32_t Result;
 	if( !ProcessID )
 	{
 		std::wcout << "Invalid Process ID: " << ProcessID << std::endl;
