@@ -14,7 +14,7 @@ struct MessageEntry
 	MessageEntry()
 	{
 	}
-	MessageEntry(const wchar_t* String)
+	explicit MessageEntry(const wchar_t* String)
 	{
 		wcscpy_s(this->String, MessageEntry::StringSize, String);
 	}
