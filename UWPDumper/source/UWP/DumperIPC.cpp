@@ -25,20 +25,20 @@ struct MessageEntry
 };
 
 template< typename QueueType, std::size_t PoolSize >
-class AtomicQueue
+class SafeQueue
 {
 public:
 	using Type = QueueType;
 	static constexpr std::size_t MaxSize = PoolSize;
 
-	AtomicQueue()
+	SafeQueue()
 		:
 		Head(0),
 		Tail(0)
 	{
 	}
 
-	~AtomicQueue()
+	~SafeQueue()
 	{
 	}
 
@@ -90,7 +90,7 @@ private:
 
 ////// Shared IPC Region //////////////////////////////////////////////////////
 #pragma data_seg("SHARED")
-AtomicQueue<MessageEntry, 1024> MessagePool = {};
+SafeQueue<MessageEntry, 1024> MessagePool = {};
 std::atomic<std::size_t> CurMessageCount = 0;
 
 // The process we are sending our data to
