@@ -46,6 +46,7 @@ public:
 	{
 		while( Mutex.test_and_set(std::memory_order_acquire) )
 		{
+			std::this_thread::yield();
 		}
 		Entries[Tail] = Entry;
 		Tail = (Tail + 1) % MaxSize;
@@ -56,6 +57,7 @@ public:
 	{
 		while( Mutex.test_and_set(std::memory_order_acquire) )
 		{
+			std::this_thread::yield();
 		}
 		Type Temp = Entries[Head];
 		Head = (Head + 1) % MaxSize;
@@ -67,6 +69,7 @@ public:
 	{
 		while( Mutex.test_and_set(std::memory_order_acquire) )
 		{
+			std::this_thread::yield();
 		}
 		Mutex.clear(std::memory_order_release);
 		std::size_t Result = Tail - Head;
