@@ -21,7 +21,7 @@
 #include <UWP/DumperIPC.hpp>
 
 // Console
-#include "MinConsole.hpp"
+#include <MinConsole.hpp>
 
 namespace Console = MinConsole;
 
