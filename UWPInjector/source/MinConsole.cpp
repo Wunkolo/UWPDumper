@@ -1,17 +1,17 @@
 #include <MinConsole.hpp>
 #include <Windows.h>
+#include <mutex>
 
 namespace MinConsole
 {
 void* GetOutputHandle()
 {
 	static void* Handle = nullptr;
-
-	if( Handle == nullptr )
-	{
-		Handle = GetStdHandle(STD_OUTPUT_HANDLE);
-	}
-
+	std::once_flag HandleCached;
+	std::call_once(HandleCached, [=]()
+		{
+			Handle = GetStdHandle(STD_OUTPUT_HANDLE);
+		});
 	return Handle;
 }
 
