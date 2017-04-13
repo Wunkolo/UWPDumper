@@ -28,11 +28,11 @@ namespace Console = MinConsole;
 const wchar_t* DLLFile = L"UWPDumper.dll";
 
 void SetAccessControl(
-	const std::wstring &ExecutableName,
-	const wchar_t *AccessString
+	const std::wstring& ExecutableName,
+	const wchar_t* AccessString
 );
 
-bool DLLInjectRemote(uint32_t ProcessID, const std::wstring &DLLpath);
+bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath);
 
 std::wstring GetRunningDirectory();
 
@@ -161,27 +161,27 @@ int main()
 	return EXIT_SUCCESS;
 }
 
-void SetAccessControl(const std::wstring &ExecutableName, const wchar_t* AccessString)
+void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessString)
 {
 	PSECURITY_DESCRIPTOR SecurityDescriptor = nullptr;
-	EXPLICIT_ACCESSW ExplicitAccess = { 0 };
+	EXPLICIT_ACCESSW ExplicitAccess = {0};
 
-	ACL *AccessControlCurrent = nullptr;
-	ACL *AccessControlNew = nullptr;
+	ACL* AccessControlCurrent = nullptr;
+	ACL* AccessControlNew = nullptr;
 
 	SECURITY_INFORMATION SecurityInfo = DACL_SECURITY_INFORMATION;
 	PSID SecurityIdentifier = nullptr;
 
 	if( GetNamedSecurityInfoW(
-		ExecutableName.c_str(),
-		SE_FILE_OBJECT,
-		DACL_SECURITY_INFORMATION,
-		nullptr,
-		nullptr,
-		&AccessControlCurrent,
-		nullptr,
-		&SecurityDescriptor) == ERROR_SUCCESS
-		)
+			ExecutableName.c_str(),
+			SE_FILE_OBJECT,
+			DACL_SECURITY_INFORMATION,
+			nullptr,
+			nullptr,
+			&AccessControlCurrent,
+			nullptr,
+			&SecurityDescriptor) == ERROR_SUCCESS
+	)
 	{
 		ConvertStringSidToSidW(AccessString, &SecurityIdentifier);
 		if( SecurityIdentifier != nullptr )
@@ -208,7 +208,7 @@ void SetAccessControl(const std::wstring &ExecutableName, const wchar_t* AccessS
 					AccessControlNew,
 					nullptr
 				);
-			};
+			}
 		}
 	}
 	if( SecurityDescriptor )
@@ -247,7 +247,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 		GetProcAddress(
 			GetModuleHandleW(L"kernel32.dll"),
 			"LoadLibraryW")
-		);
+	);
 
 	if( !ProcLoadLibrary )
 	{
@@ -272,7 +272,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 			MEM_RESERVE | MEM_COMMIT,
 			PAGE_READWRITE
 		)
-		);
+	);
 
 	if( VirtualAlloc == nullptr )
 	{
@@ -312,7 +312,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 			reinterpret_cast<LPTHREAD_START_ROUTINE>(ProcLoadLibrary),
 			VirtualAlloc,
 			0,
-			0
+			nullptr
 		);
 
 	// Wait for remote thread to finish
