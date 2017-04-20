@@ -54,13 +54,14 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 		const fs::path WritePath = DumpPath + File.path().wstring().substr(1);
 		const std::wstring ReadPath = File.path().wstring().substr(1);
 		IPC::PushMessage(
-			L"%*.*s %*.u bytes %*.1f%%\n",
+			L"%*.*s %*.u bytes %*zu/%zu\n",
 			60, 60,
 			ReadPath.c_str() + (ReadPath.length() > 60 ? (ReadPath.length() - (60)) : 0),
 			15,
 			fs::file_size(File),
-			30,
-			(i / static_cast<float>(FileList.size())) * 100
+			20,
+			i + 1,
+			FileList.size()
 		);
 
 		std::error_code ErrorCode;
@@ -76,7 +77,7 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 		else
 		{
 			IPC::PushMessage(
-				L"Error copying: %s to %s\n",
+				L"Error copying: \n\t%s\n\tto\n\t%s\n",
 				File.path().c_str(),
 				WritePath.c_str()
 			);
