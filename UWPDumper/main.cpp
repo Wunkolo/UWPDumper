@@ -19,7 +19,7 @@ namespace fs = std::experimental::filesystem;
 
 #include <UWP/DumperIPC.hpp>
 
-std::uint32_t __stdcall DumperThread(void *DLLHandle)
+std::uint32_t __stdcall DumperThread(void* DLLHandle)
 {
 	std::wstring DumpPath = fs::path(UWP::Current::Storage::GetTempStatePath()) / L"DUMP";
 
@@ -52,7 +52,6 @@ std::uint32_t __stdcall DumperThread(void *DLLHandle)
 	for( const auto& File : FileList )
 	{
 		const fs::path WritePath = DumpPath + File.path().wstring().substr(1);
-
 		const std::wstring ReadPath = File.path().wstring().substr(1);
 		IPC::PushMessage(
 			L"%*.*s %*.u bytes %*.1f%%\n",
@@ -65,23 +64,23 @@ std::uint32_t __stdcall DumperThread(void *DLLHandle)
 		);
 
 		fs::create_directories(WritePath.parent_path());
-		try
+
+		std::ifstream SourceFile(ReadPath, std::ios::binary);
+		std::ofstream DestFile(WritePath, std::ios::binary);
+
+		if( SourceFile && DestFile )
 		{
-			fs::copy(
-				File.path(),
-				WritePath,
-				fs::copy_options::update_existing
-			);
+			DestFile << SourceFile.rdbuf();
 		}
-		catch( const fs::filesystem_error &e )
+		else
 		{
 			IPC::PushMessage(
-				L"Error copying: %s (%s)\n",
+				L"Error copying: %s to %s\n",
 				File.path().c_str(),
-				e.what()
+				WritePath.c_str()
 			);
-			return EXIT_FAILURE;
 		}
+
 		i++;
 	}
 
@@ -93,7 +92,7 @@ std::uint32_t __stdcall DumperThread(void *DLLHandle)
 	return EXIT_SUCCESS;
 }
 
-std::int32_t __stdcall DllMain(HINSTANCE hDLL, std::uint32_t Reason, void *Reserved)
+std::int32_t __stdcall DllMain(HINSTANCE hDLL, std::uint32_t Reason, void* Reserved)
 {
 	switch( Reason )
 	{
