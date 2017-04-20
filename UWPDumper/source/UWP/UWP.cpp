@@ -48,10 +48,7 @@ std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> GetPackageIn
 	{
 		std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> PackageInfo(
 			reinterpret_cast<PACKAGE_INFO*>(malloc(Size)),
-			[](PACKAGE_INFO* PackageID)
-			{
-				free(PackageID);
-			}
+			FreeDeleter<PACKAGE_INFO>
 		);
 
 		GetCurrentPackageInfo(
