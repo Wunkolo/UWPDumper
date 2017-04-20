@@ -63,12 +63,13 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 			(i / static_cast<float>(FileList.size())) * 100
 		);
 
-		fs::create_directories(WritePath.parent_path());
+		std::error_code ErrorCode;
+		fs::create_directories(WritePath.parent_path(),ErrorCode);
 
 		std::ifstream SourceFile(ReadPath, std::ios::binary);
 		std::ofstream DestFile(WritePath, std::ios::binary);
 
-		if( SourceFile && DestFile )
+		if( SourceFile && DestFile && ErrorCode )
 		{
 			DestFile << SourceFile.rdbuf();
 		}
