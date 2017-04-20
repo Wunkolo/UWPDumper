@@ -23,7 +23,7 @@ void FreeDeleter(T* Data)
 
 std::unique_ptr<PACKAGE_ID, decltype(&FreeDeleter<PACKAGE_ID>)> GetPackageIdentifier()
 {
-	uint32_t Size = 0;
+	std::uint32_t Size = 0;
 	GetCurrentPackageId(&Size, nullptr);
 
 	if( Size )
@@ -34,7 +34,7 @@ std::unique_ptr<PACKAGE_ID, decltype(&FreeDeleter<PACKAGE_ID>)> GetPackageIdenti
 		);
 		GetCurrentPackageId(
 			&Size,
-			reinterpret_cast<uint8_t*>(PackageID.get())
+			reinterpret_cast<std::uint8_t*>(PackageID.get())
 		);
 		return PackageID;
 	}
@@ -46,8 +46,8 @@ std::unique_ptr<PACKAGE_ID, decltype(&FreeDeleter<PACKAGE_ID>)> GetPackageIdenti
 
 std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> GetPackageInfo()
 {
-	uint32_t Size = 0;
-	uint32_t Count = 0;
+	std::uint32_t Size = 0;
+	std::uint32_t Count = 0;
 	GetCurrentPackageInfo(PACKAGE_FILTER_HEAD, &Size, nullptr, &Count);
 
 	if( Size )
@@ -63,7 +63,7 @@ std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> GetPackageIn
 		GetCurrentPackageInfo(
 			PACKAGE_FILTER_HEAD,
 			&Size,
-			reinterpret_cast<uint8_t*>(PackageInfo.get()),
+			reinterpret_cast<std::uint8_t*>(PackageInfo.get()),
 			&Count
 		);
 		return PackageInfo;
@@ -79,7 +79,7 @@ std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> GetPackageIn
 std::wstring UWP::Current::GetFamilyName()
 {
 	std::wstring FamilyName;
-	uint32_t FamilyNameSize = 0;
+	std::uint32_t FamilyNameSize = 0;
 
 	GetCurrentPackageFamilyName(&FamilyNameSize, nullptr);
 	FamilyName.resize(FamilyNameSize - 1);
@@ -91,7 +91,7 @@ std::wstring UWP::Current::GetFamilyName()
 std::wstring UWP::Current::GetFullName()
 {
 	std::wstring FullName;
-	uint32_t FullNameSize = 0;
+	std::uint32_t FullNameSize = 0;
 
 	GetCurrentPackageFullName(&FullNameSize, nullptr);
 	FullName.resize(FullNameSize - 1);
@@ -151,7 +151,7 @@ std::wstring UWP::Current::GetPublisherID()
 std::wstring UWP::Current::GetPackagePath()
 {
 	std::wstring Path;
-	uint32_t PathSize = 0;
+	std::uint32_t PathSize = 0;
 
 	GetCurrentPackagePath(&PathSize, nullptr);
 	Path.resize(PathSize - 1);
