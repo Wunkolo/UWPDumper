@@ -65,7 +65,7 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 		);
 
 		std::error_code ErrorCode;
-		fs::create_directories(WritePath.parent_path(),ErrorCode);
+		fs::create_directories(WritePath.parent_path(), ErrorCode);
 
 		std::ifstream SourceFile(ReadPath, std::ios::binary);
 		std::ofstream DestFile(WritePath, std::ios::binary);
@@ -77,7 +77,7 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 		else
 		{
 			IPC::PushMessage(
-				L"Error copying: \n\t%s\n\tto\n\t%s\n",
+				L"\tError copying:\n\t\t%s\n\t\tto\n\t\t%s\n",
 				File.path().c_str(),
 				WritePath.c_str()
 			);
