@@ -60,30 +60,39 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 			15,
 			fs::file_size(File),
 			20,
-			i + 1,
+			++i,
 			FileList.size()
 		);
 
 		std::error_code ErrorCode;
-		fs::create_directories(WritePath.parent_path(), ErrorCode);
+		if( fs::create_directories(WritePath.parent_path(), ErrorCode) )
+		{
+			IPC::PushMessage(
+				L"Error creating dump folder: %s (%s)\n",
+				WritePath.c_str(),
+				ErrorCode.message().c_str()
+			);
+			continue;
+		}
 
 		std::ifstream SourceFile(ReadPath, std::ios::binary);
 		std::ofstream DestFile(WritePath, std::ios::binary);
 
-		if( SourceFile && DestFile && ErrorCode )
+		if( SourceFile && DestFile )
 		{
 			DestFile << SourceFile.rdbuf();
 		}
 		else
 		{
 			IPC::PushMessage(
-				L"\tError copying:\n\t\t%s\n\t\tto\n\t\t%s\n",
+				L"Error copying:\n"
+				"\t%s\n"
+				"\tto\n"
+				"\t%s\n",
 				File.path().c_str(),
 				WritePath.c_str()
 			);
 		}
-
-		i++;
 	}
 
 	IPC::PushMessage(L"Dump complete!\n\tPath:\n\t%s\n", DumpPath.c_str());
