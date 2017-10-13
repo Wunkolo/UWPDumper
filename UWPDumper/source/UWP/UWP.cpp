@@ -22,7 +22,7 @@ ComPtr<ABI::Windows::Storage::IApplicationData> GetIApplicationData()
 
 	if(
 		RoGetActivationFactory(
-			HStringReference(L"Windows.Storage.ApplicationData").Get(),
+			HStringReference(RuntimeClass_Windows_Storage_ApplicationData).Get(),
 			__uuidof(AppDataStatics), &AppDataStatics
 		) < 0
 	)
@@ -44,7 +44,7 @@ ComPtr<ABI::Windows::ApplicationModel::IPackage> GetCurrentPackage()
 	ComPtr<ABI::Windows::ApplicationModel::IPackageStatics> PackageStatics;
 	if(
 		RoGetActivationFactory(
-			HStringReference(L"Windows.ApplicationModel.Package").Get(),
+			HStringReference(RuntimeClass_Windows_ApplicationModel_Package).Get(),
 			__uuidof(PackageStatics), &PackageStatics
 		) < 0
 	)
