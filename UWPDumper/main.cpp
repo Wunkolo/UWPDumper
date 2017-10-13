@@ -32,7 +32,7 @@ void OpenTempState()
 			Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Storage_ApplicationData).Get(),
 			__uuidof(AppDataStatics), &AppDataStatics
 		) < 0
-		)
+	)
 	{
 		// Error getting ApplicationData statics
 	}
@@ -49,7 +49,7 @@ void OpenTempState()
 			Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_System_Launcher).Get(),
 			__uuidof(LauncherStatics), &LauncherStatics
 		) < 0
-		)
+	)
 	{
 		// Error getting Launcher statics
 	}
@@ -115,12 +115,15 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 		);
 
 		std::error_code ErrorCode;
-		if( fs::create_directories(WritePath.parent_path(), ErrorCode) )
+		if( fs::create_directories(WritePath.parent_path(), ErrorCode) == false && ErrorCode )
 		{
+			const std::string ErrorMessage(ErrorCode.message());
+			std::wstring WErrorMessage;
+			WErrorMessage.assign(ErrorMessage.begin(), ErrorMessage.end());
 			IPC::PushMessage(
-				L"Error creating subfolder: %s (%s)\n",
+				L"Error creating subfolder: %s\n\t%s\n",
 				WritePath.parent_path().c_str(),
-				ErrorCode.message().c_str()
+				WErrorMessage.c_str()
 			);
 			continue;
 		}
