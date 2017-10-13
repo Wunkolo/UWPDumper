@@ -157,7 +157,7 @@ std::wstring UWP::Current::Storage::GetPublisherPath()
 	if( PackageID )
 	{
 		wchar_t UserPath[MAX_PATH] = {0};
-		SHGetSpecialFolderPathW(nullptr, UserPath, CSIDL_PROFILE, false);
+		SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, UserPath);
 
 		std::wstring PublisherPath(UserPath);
 
@@ -172,7 +172,7 @@ std::wstring UWP::Current::Storage::GetPublisherPath()
 std::wstring UWP::Current::Storage::GetStoragePath()
 {
 	wchar_t UserPath[MAX_PATH] = {0};
-	SHGetSpecialFolderPathW(nullptr, UserPath, CSIDL_PROFILE, false);
+	SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, UserPath);
 
 	std::wstring StoragePath(UserPath);
 
