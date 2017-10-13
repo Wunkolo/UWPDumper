@@ -7,6 +7,10 @@
 #include <Windows.h>
 #include <ShlObj.h>
 
+#include <windows.storage.h>
+#include <windows.system.h>
+#include <wrl.h>
+
 #define WIDEIFYIMP(x) L##x
 #define WIDEIFY(x) WIDEIFYIMP(x)
 
@@ -18,6 +22,52 @@ namespace fs = std::experimental::filesystem;
 #include <UWP/UWP.hpp>
 
 #include <UWP/DumperIPC.hpp>
+
+void OpenTempState()
+{
+	Microsoft::WRL::ComPtr<ABI::Windows::Storage::IApplicationDataStatics> AppDataStatics;
+
+	if(
+		RoGetActivationFactory(
+			Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Storage_ApplicationData).Get(),
+			__uuidof(AppDataStatics), &AppDataStatics
+		) < 0
+		)
+	{
+		// Error getting ApplicationData statics
+	}
+
+	Microsoft::WRL::ComPtr<ABI::Windows::Storage::IApplicationData> AppData;
+	if( AppDataStatics->get_Current(&AppData) < 0 )
+	{
+		// Error getting current IApplicationData
+	}
+
+	Microsoft::WRL::ComPtr<ABI::Windows::System::ILauncherStatics3> LauncherStatics;
+	if(
+		RoGetActivationFactory(
+			Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_System_Launcher).Get(),
+			__uuidof(LauncherStatics), &LauncherStatics
+		) < 0
+		)
+	{
+		// Error getting Launcher statics
+	}
+
+	Microsoft::WRL::ComPtr<ABI::Windows::Storage::IStorageFolder> TemporaryFolder;
+
+	if( AppData->get_TemporaryFolder(&TemporaryFolder) < 0 )
+	{
+		// Failed to get folder
+		return;
+	}
+
+	Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IAsyncOperation<bool>> Result;
+	LauncherStatics->LaunchFolderAsync(
+		TemporaryFolder.Get(),
+		&Result
+	);
+}
 
 std::uint32_t __stdcall DumperThread(void* DLLHandle)
 {
@@ -113,11 +163,13 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 	}
 
 	IPC::PushMessage(L"Dump complete!\n\tPath:\n\t%s\n", DumpPath.c_str());
+	OpenTempState();
 	IPC::ClearTargetThread();
 
-	FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(DLLHandle), 0);
-
-	return EXIT_SUCCESS;
+	FreeLibraryAndExitThread(
+		reinterpret_cast<HMODULE>(DLLHandle),
+		EXIT_SUCCESS
+	);
 }
 
 std::int32_t __stdcall DllMain(HINSTANCE hDLL, std::uint32_t Reason, void* Reserved)
