@@ -12,8 +12,7 @@ namespace IPC
 struct MessageEntry
 {
 	MessageEntry()
-	{
-	}
+	{ }
 
 	explicit MessageEntry(const wchar_t* String)
 	{
@@ -35,12 +34,10 @@ public:
 		:
 		Head(0),
 		Tail(0)
-	{
-	}
+	{ }
 
 	~SafeQueue()
-	{
-	}
+	{ }
 
 	void Enqueue(const Type& Entry)
 	{
@@ -72,7 +69,7 @@ public:
 			std::this_thread::yield();
 		}
 		Mutex.clear(std::memory_order_release);
-		std::size_t Result = Tail - Head;
+		const std::size_t Result = Tail - Head;
 		return Result;
 	}
 
@@ -82,7 +79,9 @@ public:
 	}
 
 private:
-	std::array<Type, MaxSize> Entries = {Type()};
+	std::array<Type, MaxSize> Entries = {
+		Type()
+	};
 	std::size_t Head = 0;
 	std::size_t Tail = 0;
 	std::atomic_flag Mutex = ATOMIC_FLAG_INIT;
@@ -159,7 +158,7 @@ void PushMessage(const wchar_t* Format, ...)
 
 std::wstring PopMessage()
 {
-	MessageEntry Entry = MessagePool.Dequeue();
+	const MessageEntry Entry = MessagePool.Dequeue();
 	return std::wstring(
 		Entry.String,
 		wcslen(Entry.String)
