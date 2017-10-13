@@ -52,7 +52,7 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 	for( const auto& File : FileList )
 	{
 		const fs::path WritePath = DumpPath + File.path().wstring().substr(1);
-		const std::wstring ReadPath = File.path().wstring().substr(1);
+		const std::wstring ReadPath = File.path().wstring();
 		IPC::PushMessage(
 			L"%*.*s %*.u bytes %*zu/%zu\n",
 			60, 60,
@@ -76,7 +76,24 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 		}
 
 		std::ifstream SourceFile(ReadPath, std::ios::binary);
+		if( !SourceFile.is_open() )
+		{
+			IPC::PushMessage(
+				L"Error opening %s for reading\n",
+				ReadPath.c_str()
+			);
+			continue;
+		}
+
 		std::ofstream DestFile(WritePath, std::ios::binary);
+		if( !DestFile.is_open() )
+		{
+			IPC::PushMessage(
+				L"Error opening %s for writing\n",
+				WritePath.c_str()
+			);
+			continue;
+		}
 
 		if( SourceFile && DestFile )
 		{
