@@ -29,13 +29,11 @@ std::wstring GetPublisherPath();
 // Package Storage folders
 std::wstring GetStoragePath();
 
-std::wstring GetLocalCachePath();
-
 std::wstring GetLocalPath();
 
 std::wstring GetRoamingPath();
 
-std::wstring GetTempStatePath();
+std::wstring GetTemporaryPath();
 }
 }
 }

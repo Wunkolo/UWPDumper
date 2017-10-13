@@ -21,7 +21,7 @@ namespace fs = std::experimental::filesystem;
 
 std::uint32_t __stdcall DumperThread(void* DLLHandle)
 {
-	std::wstring DumpPath = fs::path(UWP::Current::Storage::GetTempStatePath()) / L"DUMP";
+	std::wstring DumpPath = fs::path(UWP::Current::Storage::GetTemporaryPath()) / L"DUMP";
 
 	IPC::SetTargetThread(GetCurrentThreadId());
 
@@ -68,8 +68,8 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 		if( fs::create_directories(WritePath.parent_path(), ErrorCode) )
 		{
 			IPC::PushMessage(
-				L"Error creating dump folder: %s (%s)\n",
-				WritePath.c_str(),
+				L"Error creating subfolder: %s (%s)\n",
+				WritePath.parent_path().c_str(),
 				ErrorCode.message().c_str()
 			);
 			continue;

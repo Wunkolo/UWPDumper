@@ -5,10 +5,77 @@
 #include <appmodel.h>
 #include <AppxPackaging.h>
 
+#include <windows.storage.h>
+#include <Windows.ApplicationModel.h>
+#include <wrl.h>
+
+using namespace Microsoft::WRL;
+using namespace Microsoft::WRL::Wrappers;
+
 #include <memory>
 
 namespace
 {
+ComPtr<ABI::Windows::Storage::IApplicationData> GetIApplicationData()
+{
+	ComPtr<ABI::Windows::Storage::IApplicationDataStatics> AppDataStatics;
+
+	if(
+		RoGetActivationFactory(
+			HStringReference(L"Windows.Storage.ApplicationData").Get(),
+			__uuidof(AppDataStatics), &AppDataStatics
+		) < 0
+	)
+	{
+		// Error getting ApplicationData statics
+	}
+
+	ComPtr<ABI::Windows::Storage::IApplicationData> AppData;
+	if( AppDataStatics->get_Current(&AppData) < 0 )
+	{
+		// Error getting current IApplicationData
+	}
+
+	return AppData;
+}
+
+ComPtr<ABI::Windows::ApplicationModel::IPackage> GetCurrentPackage()
+{
+	ComPtr<ABI::Windows::ApplicationModel::IPackageStatics> PackageStatics;
+	if(
+		RoGetActivationFactory(
+			HStringReference(L"Windows.ApplicationModel.Package").Get(),
+			__uuidof(PackageStatics), &PackageStatics
+		) < 0
+	)
+	{
+		// Error getting package statics
+		return nullptr;
+	}
+
+	ComPtr<ABI::Windows::ApplicationModel::IPackage> CurrentPackage;
+	if( PackageStatics->get_Current(&CurrentPackage) )
+	{
+		// Error getting current package
+	}
+
+	return CurrentPackage;
+}
+
+ComPtr<ABI::Windows::ApplicationModel::IPackageId> GetCurrentPackageID()
+{
+	ComPtr<ABI::Windows::ApplicationModel::IPackage> CurrentPackage =
+		GetCurrentPackage();
+
+	ComPtr<ABI::Windows::ApplicationModel::IPackageId> CurrentPackageID;
+	if( CurrentPackage->get_Id(&CurrentPackageID) < 0 )
+	{
+		// error getting current package ID
+		return nullptr;
+	}
+	return CurrentPackageID;
+}
+
 template< typename T >
 void FreeDeleter(T* Data)
 {
@@ -69,110 +136,155 @@ std::unique_ptr<PACKAGE_INFO, decltype(&FreeDeleter<PACKAGE_INFO>)> GetPackageIn
 
 std::wstring UWP::Current::GetFamilyName()
 {
-	std::wstring FamilyName;
-	std::uint32_t FamilyNameSize = 0;
+	ComPtr<ABI::Windows::ApplicationModel::IPackageId> PackageID = GetCurrentPackageID();
 
-	GetCurrentPackageFamilyName(&FamilyNameSize, nullptr);
-	FamilyName.resize(FamilyNameSize - 1);
-	GetCurrentPackageFamilyName(&FamilyNameSize, &FamilyName[0]);
+	HString FamilyNameString;
 
-	return FamilyName;
+	if( PackageID->get_FamilyName(FamilyNameString.GetAddressOf()) < 0 )
+	{
+		// Failed to get string
+		return L"";
+	}
+
+	std::uint32_t StringLength;
+	const wchar_t* FamilyNameRaw = FamilyNameString.GetRawBuffer(&StringLength);
+	return std::wstring(FamilyNameRaw, StringLength);
 }
 
 std::wstring UWP::Current::GetFullName()
 {
-	std::wstring FullName;
-	std::uint32_t FullNameSize = 0;
+	ComPtr<ABI::Windows::ApplicationModel::IPackageId> PackageID = GetCurrentPackageID();
 
-	GetCurrentPackageFullName(&FullNameSize, nullptr);
-	FullName.resize(FullNameSize - 1);
-	GetCurrentPackageFullName(&FullNameSize, &FullName[0]);
+	HString FullNameString;
 
-	return FullName;
+	if( PackageID->get_FullName(FullNameString.GetAddressOf()) < 0 )
+	{
+		// Failed to get string
+		return L"";
+	}
+
+	std::uint32_t StringLength;
+	const wchar_t* FullNameRaw = FullNameString.GetRawBuffer(&StringLength);
+	return std::wstring(FullNameRaw, StringLength);
 }
 
 std::wstring UWP::Current::GetArchitecture()
 {
-	const auto PackageID = GetPackageIdentifier();
+	const auto PackageID = GetCurrentPackageID();
 	if( PackageID )
 	{
-		switch( PackageID->processorArchitecture )
+		ABI::Windows::System::ProcessorArchitecture Arch;
+		PackageID->get_Architecture(&Arch);
+		switch( Arch )
 		{
-		case APPX_PACKAGE_ARCHITECTURE_ARM:
+		case ABI::Windows::System::ProcessorArchitecture::ProcessorArchitecture_Arm:
 		{
 			return L"ARM";
 		}
-		case APPX_PACKAGE_ARCHITECTURE_X86:
+		case ABI::Windows::System::ProcessorArchitecture::ProcessorArchitecture_X86:
 		{
 			return L"x86";
 		}
-		case APPX_PACKAGE_ARCHITECTURE_X64:
+		case ABI::Windows::System::ProcessorArchitecture::ProcessorArchitecture_X64:
 		{
 			return L"x64";
 		}
-		case APPX_PACKAGE_ARCHITECTURE_NEUTRAL:
+		case ABI::Windows::System::ProcessorArchitecture::ProcessorArchitecture_Neutral:
 		{
 			return L"Neutral";
 		}
 		}
 	}
-	return L"";
+	return L"Unknown";
 }
 
 std::wstring UWP::Current::GetPublisher()
 {
-	const auto PackageID = GetPackageIdentifier();
-	if( PackageID )
+	ComPtr<ABI::Windows::ApplicationModel::IPackageId> PackageID = GetCurrentPackageID();
+
+	HString PublisherString;
+
+	if( PackageID->get_Publisher(PublisherString.GetAddressOf()) < 0 )
 	{
-		return std::wstring(PackageID->publisher);
+		// Failed to get string
+		return L"";
 	}
-	return L"";
+
+	std::uint32_t StringLength;
+	const wchar_t* PublisherRaw = PublisherString.GetRawBuffer(&StringLength);
+	return std::wstring(PublisherRaw, StringLength);
 }
 
 std::wstring UWP::Current::GetPublisherID()
 {
-	const auto PackageID = GetPackageIdentifier();
-	if( PackageID )
+	ComPtr<ABI::Windows::ApplicationModel::IPackageId> PackageID = GetCurrentPackageID();
+
+	HString PublisherID;
+
+	if( PackageID->get_PublisherId(PublisherID.GetAddressOf()) < 0 )
 	{
-		return std::wstring(PackageID->publisherId);
+		// Failed to get string
+		return L"";
 	}
-	return L"";
+
+	std::uint32_t StringLength;
+	const wchar_t* PublisherIDRaw = PublisherID.GetRawBuffer(&StringLength);
+	return std::wstring(PublisherIDRaw, StringLength);
 }
 
 std::wstring UWP::Current::GetPackagePath()
 {
-	std::wstring Path;
-	std::uint32_t PathSize = 0;
+	auto Package = GetCurrentPackage();
 
-	GetCurrentPackagePath(&PathSize, nullptr);
-	Path.resize(PathSize - 1);
-	GetCurrentPackagePath(&PathSize, &Path[0]);
+	ComPtr<ABI::Windows::Storage::IStorageFolder> InstallLocationFolder;
 
-	return Path;
+	if( Package->get_InstalledLocation(&InstallLocationFolder) < 0 )
+	{
+		// Failed to get folder
+		return L"";
+	}
+
+	ComPtr<ABI::Windows::Storage::IStorageItem> FolderItem;
+	if( InstallLocationFolder.As(&FolderItem) < 0 )
+	{
+		// Failed to cast to IStorageItem
+		return L"";
+	}
+
+	HString PackagePathString;
+
+	if( FolderItem->get_Path(PackagePathString.GetAddressOf()) < 0 )
+	{
+		// Failed to get path as string
+		return L"";
+	}
+
+	std::uint32_t PathLength;
+	const wchar_t* PackagePathRaw = PackagePathString.GetRawBuffer(&PathLength);
+	return std::wstring(PackagePathRaw, PathLength);
 }
 
 std::wstring UWP::Current::Storage::GetPublisherPath()
 {
-	auto PackageID = GetPackageIdentifier();
-	if( PackageID )
-	{
-		wchar_t UserPath[MAX_PATH] = {0};
-		SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, UserPath);
+	wchar_t UserPath[MAX_PATH] = {
+		0
+	};
+	SHGetFolderPathW(nullptr, CSIDL_PROFILE, nullptr, SHGFP_TYPE_CURRENT, UserPath);
 
-		std::wstring PublisherPath(UserPath);
+	std::wstring PublisherPath(UserPath);
 
-		PublisherPath += L"\\AppData\\Local\\Publishers\\";
-		PublisherPath += PackageID->publisherId;
+	PublisherPath += L"\\AppData\\Local\\Publishers\\";
+	PublisherPath += GetPublisherID();
 
-		return PublisherPath;
-	}
-	return L"";
+	return PublisherPath;
 }
 
 std::wstring UWP::Current::Storage::GetStoragePath()
 {
-	wchar_t UserPath[MAX_PATH] = {0};
-	SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, UserPath);
+	wchar_t UserPath[MAX_PATH] = {
+		0
+	};
+	SHGetFolderPathW(nullptr, CSIDL_PROFILE, nullptr, SHGFP_TYPE_CURRENT, UserPath);
 
 	std::wstring StoragePath(UserPath);
 
@@ -181,22 +293,98 @@ std::wstring UWP::Current::Storage::GetStoragePath()
 	return StoragePath;
 }
 
-std::wstring UWP::Current::Storage::GetLocalCachePath()
-{
-	return GetStoragePath() + L"\\LocalCache";
-}
-
 std::wstring UWP::Current::Storage::GetLocalPath()
 {
-	return GetStoragePath() + L"\\LocalState";
+	ComPtr<ABI::Windows::Storage::IApplicationData> AppData = GetIApplicationData();
+
+	ComPtr<ABI::Windows::Storage::IStorageFolder> LocalStateFolder;
+
+	if( AppData->get_LocalFolder(&LocalStateFolder) < 0 )
+	{
+		// Failed to get folder
+		return L"";
+	}
+
+	ComPtr<ABI::Windows::Storage::IStorageItem> FolderItem;
+	if( LocalStateFolder.As(&FolderItem) < 0 )
+	{
+		// Failed to cast to IStorageItem
+		return L"";
+	}
+
+	HString LocalPathString;
+
+	if( FolderItem->get_Path(LocalPathString.GetAddressOf()) < 0 )
+	{
+		// Failed to get path as string
+		return L"";
+	}
+
+	std::uint32_t PathLength;
+	const wchar_t* LocalPathRaw = LocalPathString.GetRawBuffer(&PathLength);
+	return std::wstring(LocalPathRaw, PathLength);
 }
 
 std::wstring UWP::Current::Storage::GetRoamingPath()
 {
-	return GetStoragePath() + L"\\RoamingState";
+	ComPtr<ABI::Windows::Storage::IApplicationData> AppData = GetIApplicationData();
+
+	ComPtr<ABI::Windows::Storage::IStorageFolder> RoamingFolder;
+
+	if( AppData->get_RoamingFolder(&RoamingFolder) < 0 )
+	{
+		// Failed to get folder
+		return L"";
+	}
+
+	ComPtr<ABI::Windows::Storage::IStorageItem> FolderItem;
+	if( RoamingFolder.As(&FolderItem) < 0 )
+	{
+		// Failed to cast to IStorageItem
+		return L"";
+	}
+
+	HString RoamingPathString;
+
+	if( FolderItem->get_Path(RoamingPathString.GetAddressOf()) < 0 )
+	{
+		// Failed to get path as string
+		return L"";
+	}
+
+	std::uint32_t PathLength;
+	const wchar_t* RoamingPathRaw = RoamingPathString.GetRawBuffer(&PathLength);
+	return std::wstring(RoamingPathRaw, PathLength);
 }
 
-std::wstring UWP::Current::Storage::GetTempStatePath()
+std::wstring UWP::Current::Storage::GetTemporaryPath()
 {
-	return GetStoragePath() + L"\\TempState";
+	ComPtr<ABI::Windows::Storage::IApplicationData> AppData = GetIApplicationData();
+
+	ComPtr<ABI::Windows::Storage::IStorageFolder> TemporaryFolder;
+
+	if( AppData->get_TemporaryFolder(&TemporaryFolder) < 0 )
+	{
+		// Failed to get folder
+		return L"";
+	}
+
+	ComPtr<ABI::Windows::Storage::IStorageItem> FolderItem;
+	if( TemporaryFolder.As(&FolderItem) < 0 )
+	{
+		// Failed to cast to IStorageItem
+		return L"";
+	}
+
+	HString TemporaryPathString;
+
+	if( FolderItem->get_Path(TemporaryPathString.GetAddressOf()) < 0 )
+	{
+		// Failed to get path as string
+		return L"";
+	}
+
+	std::uint32_t PathLength;
+	const wchar_t* TemporyPathRaw = TemporaryPathString.GetRawBuffer(&PathLength);
+	return std::wstring(TemporyPathRaw, PathLength);
 }
