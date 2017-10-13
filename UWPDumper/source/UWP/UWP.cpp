@@ -93,7 +93,7 @@ std::wstring UWP::Current::GetFullName()
 
 std::wstring UWP::Current::GetArchitecture()
 {
-	auto PackageID = GetPackageIdentifier();
+	const auto PackageID = GetPackageIdentifier();
 	if( PackageID )
 	{
 		switch( PackageID->processorArchitecture )
@@ -121,7 +121,7 @@ std::wstring UWP::Current::GetArchitecture()
 
 std::wstring UWP::Current::GetPublisher()
 {
-	auto PackageID = GetPackageIdentifier();
+	const auto PackageID = GetPackageIdentifier();
 	if( PackageID )
 	{
 		return std::wstring(PackageID->publisher);
@@ -131,7 +131,7 @@ std::wstring UWP::Current::GetPublisher()
 
 std::wstring UWP::Current::GetPublisherID()
 {
-	auto PackageID = GetPackageIdentifier();
+	const auto PackageID = GetPackageIdentifier();
 	if( PackageID )
 	{
 		return std::wstring(PackageID->publisherId);
