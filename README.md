@@ -4,7 +4,7 @@ DLL and Injector for dumping UWP applications at run-time to bypass encrypted fi
 ![image](https://cloud.githubusercontent.com/assets/644247/23590473/a06ee446-0195-11e7-92b7-909177b6485a.gif)
 
 
-Run `UWPDumper.exe` and enter valid UWP Process ID to inject into.
+Run `UWPInjector.exe` and enter valid UWP Process ID to inject into.
 App file system will be dumped into:
 
 `C:\Users\(Username)\AppData\Local\Packages\(Package Family Name)\TempState\DUMP`
