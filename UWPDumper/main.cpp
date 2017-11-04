@@ -88,7 +88,7 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 
 	std::vector<fs::directory_entry> FileList;
 
-	for( auto& Entry : fs::recursive_directory_iterator(".") )
+	for( auto& Entry : fs::recursive_directory_iterator(UWP::Current::GetPackagePath()) )
 	{
 		if( fs::is_regular_file(Entry.path()) )
 		{
@@ -101,7 +101,7 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 	std::size_t i = 0;
 	for( const auto& File : FileList )
 	{
-		const fs::path WritePath = DumpPath + File.path().wstring().substr(1);
+		const fs::path WritePath = DumpPath + File.path().wstring().substr(UWP::Current::GetPackagePath().length());
 		const std::wstring ReadPath = File.path().wstring();
 		IPC::PushMessage(
 			L"%*.*s %*.u bytes %*zu/%zu\n",
