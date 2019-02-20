@@ -167,6 +167,7 @@ int main()
 		Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
 		std::cout << "Failed" << std::endl;
 		system("pause");
+		return EXIT_FAILURE;
 	}
 	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 	std::cout << "Success!" << std::endl;
@@ -180,6 +181,7 @@ int main()
 		{
 			Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
 			std::cout << "Remote thread wait timeout: Unable to find target thread" << std::endl;
+			system("pause");
 			return EXIT_FAILURE;
 		}
 	}
