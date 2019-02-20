@@ -36,6 +36,45 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath);
 
 std::wstring GetRunningDirectory();
 
+using ThreadCallback = bool(*)(
+	std::uint32_t ThreadID,
+	void* Data
+);
+
+void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Data)
+{
+	void* hSnapShot = CreateToolhelp32Snapshot(
+		TH32CS_SNAPTHREAD,
+		ProcessID
+	);
+
+	if( hSnapShot == INVALID_HANDLE_VALUE )
+	{
+		return;
+	}
+
+	THREADENTRY32 ThreadEntry = { 0 };
+	ThreadEntry.dwSize = sizeof(THREADENTRY32);
+	Thread32First(hSnapShot, &ThreadEntry);
+	do
+	{
+		if( ThreadEntry.th32OwnerProcessID == ProcessID )
+		{
+			const bool Continue = ThreadProc(
+				ThreadEntry.th32ThreadID,
+				Data
+			);
+			if( Continue == false )
+			{
+				break;
+			}
+		}
+	}
+	while( Thread32Next(hSnapShot, &ThreadEntry) );
+
+	CloseHandle(hSnapShot);
+}
+
 int main()
 {
 	SetConsoleOutputCP(437);
