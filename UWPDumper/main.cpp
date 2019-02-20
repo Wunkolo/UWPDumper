@@ -101,66 +101,83 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 	std::size_t i = 0;
 	for( const auto& File : FileList )
 	{
-		const fs::path WritePath = DumpPath + File.path().wstring().substr(UWP::Current::GetPackagePath().length());
-		const std::wstring ReadPath = File.path().wstring();
-		IPC::PushMessage(
-			L"%*.*s %*.u bytes %*zu/%zu\n",
-			60, 60,
-			ReadPath.c_str() + (ReadPath.length() > 60 ? (ReadPath.length() - (60)) : 0),
-			15,
-			fs::file_size(File),
-			20,
-			++i,
-			FileList.size()
-		);
-
-		std::error_code ErrorCode;
-		if( fs::create_directories(WritePath.parent_path(), ErrorCode) == false && ErrorCode )
+		try
 		{
-			const std::string ErrorMessage(ErrorCode.message());
-			std::wstring WErrorMessage;
-			WErrorMessage.assign(ErrorMessage.begin(), ErrorMessage.end());
+
+			const fs::path WritePath = DumpPath + File.path().wstring().substr(UWP::Current::GetPackagePath().length());
+			const std::wstring ReadPath = File.path().wstring();
 			IPC::PushMessage(
-				L"Error creating subfolder: %s\n\t%s\n",
-				WritePath.parent_path().c_str(),
-				WErrorMessage.c_str()
+				L"%*.*s %*.u bytes %*zu/%zu\n",
+				60, 60,
+				ReadPath.c_str() + (ReadPath.length() > 60 ? (ReadPath.length() - (60)) : 0),
+				15,
+				fs::file_size(File),
+				20,
+				++i,
+				FileList.size()
 			);
-			continue;
-		}
 
-		std::ifstream SourceFile(ReadPath, std::ios::binary);
-		if( !SourceFile.is_open() )
+			std::error_code ErrorCode;
+			if( fs::create_directories(WritePath.parent_path(), ErrorCode) == false && ErrorCode )
+			{
+				const std::string ErrorMessage(ErrorCode.message());
+				std::wstring WErrorMessage;
+				WErrorMessage.assign(ErrorMessage.begin(), ErrorMessage.end());
+				IPC::PushMessage(
+					L"Error creating subfolder: %s\n\t%s\n",
+					WritePath.parent_path().c_str(),
+					WErrorMessage.c_str()
+				);
+				continue;
+			}
+
+			std::ifstream SourceFile(ReadPath, std::ios::binary);
+			if( !SourceFile.is_open() )
+			{
+				IPC::PushMessage(
+					L"Error opening %s for reading\n",
+					ReadPath.c_str()
+				);
+				continue;
+			}
+
+			std::ofstream DestFile(WritePath, std::ios::binary);
+			if( !DestFile.is_open() )
+			{
+				IPC::PushMessage(
+					L"Error opening %s for writing\n",
+					WritePath.c_str()
+				);
+				continue;
+			}
+
+			if( SourceFile && DestFile )
+			{
+				DestFile << SourceFile.rdbuf();
+			}
+			else
+			{
+				IPC::PushMessage(
+					L"Error copying file data:\n"
+					"\t%s\n"
+					"\tto\n"
+					"\t%s\n",
+					File.path().c_str(),
+					WritePath.c_str()
+				);
+			}
+		}
+		catch( std::exception& Exception )
 		{
-			IPC::PushMessage(
-				L"Error opening %s for reading\n",
-				ReadPath.c_str()
+			std::wstring ExceptionMessage
+				= std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>{}.from_bytes(
+					Exception.what()
 			);
-			continue;
-		}
-
-		std::ofstream DestFile(WritePath, std::ios::binary);
-		if( !DestFile.is_open() )
-		{
 			IPC::PushMessage(
-				L"Error opening %s for writing\n",
-				WritePath.c_str()
-			);
-			continue;
-		}
-
-		if( SourceFile && DestFile )
-		{
-			DestFile << SourceFile.rdbuf();
-		}
-		else
-		{
-			IPC::PushMessage(
-				L"Error copying:\n"
-				"\t%s\n"
-				"\tto\n"
-				"\t%s\n",
+				L"Exception {%s}:\n"
+				"\t[%s]\n",
 				File.path().c_str(),
-				WritePath.c_str()
+				Exception.what()
 			);
 		}
 	}
