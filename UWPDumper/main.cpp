@@ -184,12 +184,13 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 
 	IPC::PushMessage(L"Dump complete!\n\tPath:\n\t%s\n", DumpPath.c_str());
 	OpenTempState();
-	IPC::ClearTargetThread();
+	// IPC::ClearTargetThread();
 
 	FreeLibraryAndExitThread(
 		reinterpret_cast<HMODULE>(DLLHandle),
 		EXIT_SUCCESS
 	);
+	return 0;
 }
 
 std::int32_t __stdcall DllMain(HINSTANCE hDLL, std::uint32_t Reason, void* Reserved)
@@ -198,17 +199,25 @@ std::int32_t __stdcall DllMain(HINSTANCE hDLL, std::uint32_t Reason, void* Reser
 	{
 	case DLL_PROCESS_ATTACH:
 	{
+		// This if-statement is needed due to the fact that
+		// UWPInjector _also_ loads in this DLL so that the shared memory pages get mapped as well
 		if( IPC::GetTargetProcess() == GetCurrentProcessId() )
 		{
-			// We are the target process to be dumped
-			CreateThread(
-				nullptr,
-				0,
-				reinterpret_cast<unsigned long(__stdcall*)(void*)>(&DumperThread),
-				hDLL,
-				0,
-				nullptr
-			);
+			// UWPInjector already gets the target process to spawn a remote thread so there is no need to
+			// spawn yet another thread within it. The `CreateThread` method is added for compatibility sake
+			// in case there is some game that _needs_ the dumper to be created on its own thread
+			// TODO: If it is found that the game is doing some some hooking/cheat-detection on `CreateThread`
+			// Then run the dumper on the LoadLibrary thread, otherwise, create a new thread.
+			// - Wunk 2/7/19
+			//CreateThread(
+			//	nullptr,
+			//	0,
+			//	reinterpret_cast<unsigned long(__stdcall*)(void*)>(&DumperThread),
+			//	hDLL,
+			//	0,
+			//	nullptr
+			//);
+			DumperThread(hDLL);
 		}
 	}
 	case DLL_PROCESS_DETACH:
