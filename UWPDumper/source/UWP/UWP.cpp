@@ -28,12 +28,14 @@ ComPtr<ABI::Windows::Storage::IApplicationData> GetIApplicationData()
 	)
 	{
 		// Error getting ApplicationData statics
+		return nullptr;
 	}
 
 	ComPtr<ABI::Windows::Storage::IApplicationData> AppData;
 	if( AppDataStatics->get_Current(&AppData) < 0 )
 	{
 		// Error getting current IApplicationData
+		return nullptr;
 	}
 
 	return AppData;
@@ -66,11 +68,16 @@ ComPtr<ABI::Windows::ApplicationModel::IPackageId> GetCurrentPackageID()
 {
 	ComPtr<ABI::Windows::ApplicationModel::IPackage> CurrentPackage =
 		GetCurrentPackage();
+	if( !CurrentPackage )
+	{
+		// Error getting current package
+		return nullptr;
+	}
 
 	ComPtr<ABI::Windows::ApplicationModel::IPackageId> CurrentPackageID;
 	if( CurrentPackage->get_Id(&CurrentPackageID) < 0 )
 	{
-		// error getting current package ID
+		// Error getting current package ID
 		return nullptr;
 	}
 	return CurrentPackageID;
@@ -201,6 +208,11 @@ std::wstring UWP::Current::GetArchitecture()
 std::wstring UWP::Current::GetPublisher()
 {
 	ComPtr<ABI::Windows::ApplicationModel::IPackageId> PackageID = GetCurrentPackageID();
+	if( !PackageID )
+	{
+		// Error getting current Package ID
+		return L"";
+	}
 
 	HString PublisherString;
 
@@ -360,7 +372,11 @@ std::wstring UWP::Current::Storage::GetRoamingPath()
 std::wstring UWP::Current::Storage::GetTemporaryPath()
 {
 	ComPtr<ABI::Windows::Storage::IApplicationData> AppData = GetIApplicationData();
-
+	if( !AppData )
+	{
+		// Error getting Application Data;
+		return L"";
+	}
 	ComPtr<ABI::Windows::Storage::IStorageFolder> TemporaryFolder;
 
 	if( AppData->get_TemporaryFolder(&TemporaryFolder) < 0 )
