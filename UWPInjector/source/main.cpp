@@ -389,6 +389,12 @@ void* DLLInjectRemote(std::uint32_t ProcessID, const std::wstring& DLLpath)
 		return nullptr;
 	}
 
+	if( WaitForSingleObject(RemoteThread, 0) == WAIT_OBJECT_0 )
+	{
+		std::wcout << "Remote thread exited soon after creation" << std::endl;
+		return nullptr;
+	}
+
 	// Set thread priority to highest
 	if( SetThreadPriority(RemoteThread, THREAD_PRIORITY_HIGHEST) == 0 )
 	{
