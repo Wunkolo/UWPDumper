@@ -27,7 +27,8 @@ void SetAccessControl(
 	const wchar_t* AccessString
 );
 
-bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath);
+// Returns handle to RemoteThread on success
+void* DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath);
 
 std::wstring GetRunningDirectory();
 
@@ -162,18 +163,20 @@ int main()
 	IPC::SetTargetProcess(ProcessID);
 
 	std::cout << "\033[93mInjecting into remote process: ";
-	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile) )
+	void* RemoteThread = DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile);
+	if( RemoteThread == nullptr)
 	{
 		std::cout << "\033[91mFailed" << std::endl;
 		system("pause");
 		return EXIT_FAILURE;
 	}
-	std::cout << "\033[92mSuccess!" << std::endl;
+	std::uint32_t RemoteThreadID = GetThreadId(RemoteThread);
+	std::cout << "\033[92mSuccess! (" << std::hex << RemoteThreadID << ')' << std::endl;
 
 	// Wait for remote thread to signal back
-	std::cout << "\033[93mWaiting for remote thread IPC:" << std::endl;
+	std::cout << "\033[93mWaiting for remote thread to report back..." << std::endl;
 	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
-	while( IPC::GetTargetThread() == IPC::InvalidThread )
+	while( IPC::GetTargetThread() != RemoteThreadID )
 	{
 		std::printf(
 			"%c\r",
@@ -186,6 +189,13 @@ int main()
 		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
 		{
 			std::cout << "\033[91mRemote thread wait timeout: Remote thread did not report back" << std::endl;
+			std::uint32_t ThreadExitCode = 0;
+			GetExitCodeThread(RemoteThread, reinterpret_cast<LPDWORD>(&ThreadExitCode));
+			std::cout << "\033[91mRemote thread exit code: " << std::hex << ThreadExitCode << std::endl;
+			if( ThreadExitCode == 0 )
+			{
+				std::wcout << GetLastErrorMessage() << std::endl;
+			}
 			system("pause");
 			return EXIT_FAILURE;
 		}
@@ -198,7 +208,8 @@ int main()
 	{
 		while( IPC::MessageCount() > 0 )
 		{
-			std::wcout << IPC::PopMessage() << "\033[0m";
+			const std::wstring CurMessage = IPC::PopMessage();
+			std::wcout << CurMessage << "\033[0m";
 		}
 	}
 	system("pause");
@@ -270,20 +281,20 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 	}
 }
 
-bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
+void* DLLInjectRemote(std::uint32_t ProcessID, const std::wstring& DLLpath)
 {
 	const std::size_t DLLPathSize = ((DLLpath.size() + 1) * sizeof(wchar_t));
 	std::uint32_t Result;
 	if( !ProcessID )
 	{
 		std::wcout << "Invalid Process ID: " << ProcessID << std::endl;
-		return false;
+		return nullptr;
 	}
 
 	if( GetFileAttributesW(DLLpath.c_str()) == INVALID_FILE_ATTRIBUTES )
 	{
 		std::wcout << "DLL file: " << DLLpath << " does not exists" << std::endl;
-		return false;
+		return nullptr;
 	}
 
 	SetAccessControl(DLLpath, L"S-1-15-2-1");
@@ -295,16 +306,17 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 	if( !ProcLoadLibrary )
 	{
 		std::wcout << "Unable to find LoadLibraryW procedure" << std::endl;
-		return false;
+		return nullptr;
 	}
 
 	void* Process = OpenProcess(PROCESS_ALL_ACCESS, false, ProcessID);
 	if( Process == nullptr )
 	{
 		std::wcout << "Unable to open process ID" << ProcessID << " for writing" << std::endl;
-		return false;
+		return nullptr;
 	}
-	void* VirtualAlloc = reinterpret_cast<void*>(
+	// Allocate remote memory containing the path to the dll
+	void* RemoteDLLPath = reinterpret_cast<void*>(
 		VirtualAllocEx(
 			Process,
 			nullptr,
@@ -314,17 +326,17 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 		)
 	);
 
-	if( VirtualAlloc == nullptr )
+	if( RemoteDLLPath == nullptr )
 	{
 		std::wcout << "Unable to remotely allocate memory" << std::endl;
 		CloseHandle(Process);
-		return false;
+		return nullptr;
 	}
 
 	std::size_t BytesWritten = 0;
 	Result = WriteProcessMemory(
 		Process,
-		VirtualAlloc,
+		RemoteDLLPath,
 		DLLpath.data(),
 		DLLPathSize,
 		&BytesWritten
@@ -334,14 +346,14 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 	{
 		std::wcout << "Unable to write process memory" << std::endl;
 		CloseHandle(Process);
-		return false;
+		return nullptr;
 	}
 
 	if( BytesWritten != DLLPathSize )
 	{
 		std::wcout << "Failed to write remote DLL path name" << std::endl;
 		CloseHandle(Process);
-		return false;
+		return nullptr;
 	}
 
 	void* RemoteThread =
@@ -350,33 +362,41 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 			nullptr,
 			0,
 			reinterpret_cast<LPTHREAD_START_ROUTINE>(ProcLoadLibrary),
-			VirtualAlloc,
+			RemoteDLLPath,
 			0,
 			nullptr
 		);
-
-	// Wait for remote thread to finish
-	if( RemoteThread )
-	{
-		// Explicitly wait for LoadLibraryW to complete before releasing memory
-		// avoids causing a remote memory leak
-		const std::uint32_t WaitResult = WaitForSingleObject(RemoteThread, INFINITE);
-		std::wcout << "Remote thread completed with code: " << std::hex << WaitResult << std::endl;
-		if( WaitResult == WAIT_FAILED )
-		{
-			std::wcout << GetLastErrorMessage() << std::endl;
-		}
-		CloseHandle(RemoteThread);
-	}
-	else
+	if( RemoteThread == nullptr )
 	{
 		// Failed to create thread
 		std::wcout << "Unable to create remote thread" << std::endl;
+		CloseHandle(Process);
+		return nullptr;
 	}
 
-	VirtualFreeEx(Process, VirtualAlloc, 0, MEM_RELEASE);
+	// Set thread priority to highest
+	if( SetThreadPriority(RemoteThread, THREAD_PRIORITY_HIGHEST) == 0 )
+	{
+		// Failed to set thread priority, whatever
+	}
+
+
+	// Don't wait for remote thread to finish anymore, the dump can happen within DllMain
+
+	// const std::uint32_t WaitResult = WaitForSingleObject(RemoteThread, INFINITE);
+	// std::wcout << "Remote thread completed with code: " << std::hex << WaitResult << std::endl;
+	// if( WaitResult == WAIT_FAILED )
+	// {
+	// 	std::wcout << GetLastErrorMessage() << std::endl;
+	// }
+	// CloseHandle(RemoteThread);
+
+	// Let RemoteDLLPath leak
+	// VirtualFreeEx(Process, RemoteDLLPath, 0, MEM_RELEASE);
+
+	// Dont need the process handle anymore
 	CloseHandle(Process);
-	return true;
+	return RemoteThread;
 }
 
 std::wstring GetRunningDirectory()
@@ -399,5 +419,5 @@ std::wstring GetLastErrorMessage()
 		(sizeof(Buffer) / sizeof(wchar_t)),
 		nullptr
 	);
-	return std::wstring(Buffer, 256);
+	return L"{" + std::wstring(Buffer, 256) + L"}";
 }
