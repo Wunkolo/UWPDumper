@@ -36,6 +36,8 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath);
 
 std::wstring GetRunningDirectory();
 
+std::wstring GetLastErrorMessage();
+
 using ThreadCallback = bool(*)(
 	std::uint32_t ThreadID,
 	void* Data
@@ -361,7 +363,12 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 	{
 		// Explicitly wait for LoadLibraryW to complete before releasing memory
 		// avoids causing a remote memory leak
-		WaitForSingleObject(RemoteThread, INFINITE);
+		const std::uint32_t WaitResult = WaitForSingleObject(RemoteThread, INFINITE);
+		std::wcout << "Remote thread completed with code: " << std::hex << WaitResult << std::endl;
+		if( WaitResult == WAIT_FAILED )
+		{
+			std::wcout << GetLastErrorMessage() << std::endl;
+		}
 		CloseHandle(RemoteThread);
 	}
 	else
@@ -381,4 +388,19 @@ std::wstring GetRunningDirectory()
 	GetModuleFileNameW(GetModuleHandleW(nullptr), RunPath, MAX_PATH);
 	PathRemoveFileSpecW(RunPath);
 	return std::wstring(RunPath);
+}
+
+std::wstring GetLastErrorMessage()
+{
+	wchar_t Buffer[256];
+	FormatMessageW(
+		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr,
+		GetLastError(),
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		Buffer,
+		(sizeof(Buffer) / sizeof(wchar_t)),
+		nullptr
+	);
+	return std::wstring(Buffer, 256);
 }
