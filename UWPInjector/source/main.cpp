@@ -191,12 +191,12 @@ int main()
 
 	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
 
-	std::cout << "\033[0m";
+	std::cout << "\033[0m" << std::flush;
 	while( IPC::GetTargetThread() != IPC::InvalidThread )
 	{
 		while( IPC::MessageCount() > 0 )
 		{
-			std::wcout << IPC::PopMessage();
+			std::wcout << IPC::PopMessage() << "\033[0m";
 		}
 	}
 	system("pause");
