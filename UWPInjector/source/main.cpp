@@ -73,21 +73,20 @@ void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Da
 int main()
 {
 	// Enable VT100
-	const auto Handle = GetStdHandle(STD_OUTPUT_HANDLE);
 	DWORD ConsoleMode;
 	GetConsoleMode(
-		Handle,
+		GetStdHandle(STD_OUTPUT_HANDLE),
 		&ConsoleMode
 	);
 	SetConsoleMode(
-		Handle,
+		GetStdHandle(STD_OUTPUT_HANDLE),
 		ConsoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING
 	);
 	SetConsoleOutputCP(437);
 
 	std::wcout << "\033[92mUWPInjector Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
-	std::wcout << "\033[96m\t-https://github.com/Wunkolo/UWPDumper\n";
-	std::wcout << "\033[95m" << std::wstring(80, '-') << std::endl;
+	std::wcout << "\033[96m\t\033(0m\033(Bhttps://github.com/Wunkolo/UWPDumper\n";
+	std::wcout << "\033[95m\033(0" << std::wstring(80, 'q') << "\033(B" << std::endl;
 
 	std::uint32_t ProcessID = 0;
 
@@ -124,8 +123,8 @@ int main()
 
 					std::wcout
 						<< "\033[96m"
-						<< " | "
-						<< ProcessEntry.szExeFile << " :\n\t\t-";
+						<< " \033(0x\033(B "
+						<< ProcessEntry.szExeFile << " :\n\t\t\033(0m\033(B";
 					std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
 
 					ProcessCode = GetPackageFamilyName(
@@ -206,15 +205,17 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 	SECURITY_INFORMATION SecurityInfo = DACL_SECURITY_INFORMATION;
 	PSID SecurityIdentifier = nullptr;
 
-	if( GetNamedSecurityInfoW(
-		ExecutableName.c_str(),
-		SE_FILE_OBJECT,
-		DACL_SECURITY_INFORMATION,
-		nullptr,
-		nullptr,
-		&AccessControlCurrent,
-		nullptr,
-		&SecurityDescriptor) == ERROR_SUCCESS
+	if(
+		GetNamedSecurityInfoW(
+			ExecutableName.c_str(),
+			SE_FILE_OBJECT,
+			DACL_SECURITY_INFORMATION,
+			nullptr,
+			nullptr,
+			&AccessControlCurrent,
+			nullptr,
+			&SecurityDescriptor
+		) == ERROR_SUCCESS
 	)
 	{
 		ConvertStringSidToSidW(AccessString, &SecurityIdentifier);
@@ -227,11 +228,14 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 			ExplicitAccess.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
 			ExplicitAccess.Trustee.ptstrName = reinterpret_cast<wchar_t*>(SecurityIdentifier);
 
-			if( SetEntriesInAclW(
-				1,
-				&ExplicitAccess,
-				AccessControlCurrent,
-				&AccessControlNew) == ERROR_SUCCESS )
+			if(
+				SetEntriesInAclW(
+					1,
+					&ExplicitAccess,
+					AccessControlCurrent,
+					&AccessControlNew
+				) == ERROR_SUCCESS
+			)
 			{
 				SetNamedSecurityInfoW(
 					const_cast<wchar_t*>(ExecutableName.c_str()),
@@ -274,7 +278,8 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 	SetAccessControl(DLLpath, L"S-1-15-2-1");
 
 	void* ProcLoadLibrary = reinterpret_cast<void*>(
-		GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "LoadLibraryW"));
+		GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "LoadLibraryW")
+	);
 
 	if( !ProcLoadLibrary )
 	{
