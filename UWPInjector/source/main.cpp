@@ -20,11 +20,6 @@
 // IPC
 #include <UWP/DumperIPC.hpp>
 
-// Console
-#include <MinConsole.hpp>
-
-namespace Console = MinConsole;
-
 const wchar_t* DLLFile = L"UWPDumper.dll";
 
 void SetAccessControl(
@@ -77,21 +72,27 @@ void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Da
 
 int main()
 {
+	// Enable VT100
+	DWORD ConsoleMode;
+	GetConsoleMode(
+		GetStdHandle(STD_OUTPUT_HANDLE),
+		&ConsoleMode
+	);
+	SetConsoleMode(
+		GetStdHandle(STD_OUTPUT_HANDLE),
+		ConsoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING
+	);
 	SetConsoleOutputCP(437);
 
-	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
-	std::wcout << "UWPInjector Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
-	Console::SetTextColor(Console::Color::Input);
-	std::wcout << "\t-https://github.com/Wunkolo/UWPDumper\n";
-	Console::SetTextColor(Console::Color::Magenta);
-	std::wcout << std::wstring(Console::GetWidth() - 1, '-') << std::endl;
-	Console::SetTextColor(Console::Color::Info);
+	std::wcout << "\033[92mUWPInjector Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
+	std::wcout << "\033[96m\t\033(0m\033(Bhttps://github.com/Wunkolo/UWPDumper\n";
+	std::wcout << "\033[95m\033(0" << std::wstring(80, 'q') << "\033(B" << std::endl;
 
 	std::uint32_t ProcessID = 0;
 
 	IPC::SetClientProcess(GetCurrentProcessId());
 
-	std::cout << "Currently running UWP Apps:" << std::endl;
+	std::cout << "\033[93mCurrently running UWP Apps:" << std::endl;
 	void* ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 ProcessEntry;
 	ProcessEntry.dwSize = sizeof(PROCESSENTRY32);
@@ -115,15 +116,15 @@ int main()
 				);
 				if( NameLength )
 				{
-					Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
 					std::wcout
+						<< "\033[92m"
 						<< std::setw(12)
 						<< ProcessEntry.th32ProcessID;
 
-					Console::SetTextColor(Console::Color::Info);
 					std::wcout
-						<< " | "
-						<< ProcessEntry.szExeFile << " :\n\t\t-";
+						<< "\033[96m"
+						<< " \033(0x\033(B "
+						<< ProcessEntry.szExeFile << " :\n\t\t\033(0m\033(B";
 					std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
 
 					ProcessCode = GetPackageFamilyName(
@@ -147,40 +148,33 @@ int main()
 	}
 	else
 	{
-		Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
-		std::cout << "Unable to iterate active processes" << std::endl;
+		std::cout << "\033[91mUnable to iterate active processes" << std::endl;
 		system("pause");
 		return EXIT_FAILURE;
 	}
-	std::cout << "Enter ProcessID: ";
-	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
+	std::cout << "\033[93mEnter ProcessID: \033[92m";
 	std::cin >> ProcessID;
-	Console::SetTextColor(Console::Color::Info);
 
 	SetAccessControl(GetRunningDirectory() + L'\\' + DLLFile, L"S-1-15-2-1");
 
 	IPC::SetTargetProcess(ProcessID);
 
-	std::cout << "Injecting into remote process: ";
+	std::cout << "\033[93mInjecting into remote process: ";
 	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile) )
 	{
-		Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
-		std::cout << "Failed" << std::endl;
+		std::cout << "\033[91mFailed" << std::endl;
 		system("pause");
 		return EXIT_FAILURE;
 	}
-	Console::SetTextColor(Console::Color::Green | Console::Color::Bright);
-	std::cout << "Success!" << std::endl;
+	std::cout << "\033[92mSuccess!" << std::endl;
 
-	Console::SetTextColor(Console::Color::Info);
-	std::cout << "Waiting for remote thread IPC:" << std::endl;
+	std::cout << "\033[93mWaiting for remote thread IPC:" << std::endl;
 	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
 	while( IPC::GetTargetThread() == IPC::InvalidThread )
 	{
 		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
 		{
-			Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
-			std::cout << "Remote thread wait timeout: Unable to find target thread" << std::endl;
+			std::cout << "\033[91mRemote thread wait timeout: Unable to find target thread" << std::endl;
 			system("pause");
 			return EXIT_FAILURE;
 		}
@@ -188,14 +182,12 @@ int main()
 
 	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
 
-	Console::SetTextColor(
-		Console::Color::Cyan | Console::Color::Bright
-	);
+	std::cout << "\033[0m" << std::flush;
 	while( IPC::GetTargetThread() != IPC::InvalidThread )
 	{
 		while( IPC::MessageCount() > 0 )
 		{
-			std::wcout << IPC::PopMessage();
+			std::wcout << IPC::PopMessage() << "\033[0m";
 		}
 	}
 	system("pause");
@@ -205,7 +197,7 @@ int main()
 void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessString)
 {
 	PSECURITY_DESCRIPTOR SecurityDescriptor = nullptr;
-	EXPLICIT_ACCESSW ExplicitAccess = {0};
+	EXPLICIT_ACCESSW ExplicitAccess = { 0 };
 
 	ACL* AccessControlCurrent = nullptr;
 	ACL* AccessControlNew = nullptr;
@@ -213,7 +205,8 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 	SECURITY_INFORMATION SecurityInfo = DACL_SECURITY_INFORMATION;
 	PSID SecurityIdentifier = nullptr;
 
-	if( GetNamedSecurityInfoW(
+	if(
+		GetNamedSecurityInfoW(
 			ExecutableName.c_str(),
 			SE_FILE_OBJECT,
 			DACL_SECURITY_INFORMATION,
@@ -221,7 +214,8 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 			nullptr,
 			&AccessControlCurrent,
 			nullptr,
-			&SecurityDescriptor) == ERROR_SUCCESS
+			&SecurityDescriptor
+		) == ERROR_SUCCESS
 	)
 	{
 		ConvertStringSidToSidW(AccessString, &SecurityIdentifier);
@@ -234,11 +228,14 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 			ExplicitAccess.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
 			ExplicitAccess.Trustee.ptstrName = reinterpret_cast<wchar_t*>(SecurityIdentifier);
 
-			if( SetEntriesInAclW(
-				1,
-				&ExplicitAccess,
-				AccessControlCurrent,
-				&AccessControlNew) == ERROR_SUCCESS )
+			if(
+				SetEntriesInAclW(
+					1,
+					&ExplicitAccess,
+					AccessControlCurrent,
+					&AccessControlNew
+				) == ERROR_SUCCESS
+			)
 			{
 				SetNamedSecurityInfoW(
 					const_cast<wchar_t*>(ExecutableName.c_str()),
@@ -254,15 +251,11 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 	}
 	if( SecurityDescriptor )
 	{
-		LocalFree(
-			reinterpret_cast<HLOCAL>(SecurityDescriptor)
-		);
+		LocalFree(reinterpret_cast<HLOCAL>(SecurityDescriptor));
 	}
 	if( AccessControlNew )
 	{
-		LocalFree(
-			reinterpret_cast<HLOCAL>(AccessControlNew)
-		);
+		LocalFree(reinterpret_cast<HLOCAL>(AccessControlNew));
 	}
 }
 
@@ -285,9 +278,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 	SetAccessControl(DLLpath, L"S-1-15-2-1");
 
 	void* ProcLoadLibrary = reinterpret_cast<void*>(
-		GetProcAddress(
-			GetModuleHandleW(L"kernel32.dll"),
-			"LoadLibraryW")
+		GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "LoadLibraryW")
 	);
 
 	if( !ProcLoadLibrary )
@@ -296,10 +287,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 		return false;
 	}
 
-	void* Process = OpenProcess(
-		PROCESS_ALL_ACCESS,
-		false,
-		ProcessID);
+	void* Process = OpenProcess(PROCESS_ALL_ACCESS, false, ProcessID);
 	if( Process == nullptr )
 	{
 		std::wcout << "Unable to open process ID" << ProcessID << " for writing" << std::endl;
@@ -322,7 +310,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 		return false;
 	}
 
-	SIZE_T BytesWritten = 0;
+	std::size_t BytesWritten = 0;
 	Result = WriteProcessMemory(
 		Process,
 		VirtualAlloc,
