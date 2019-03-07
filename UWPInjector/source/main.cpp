@@ -178,19 +178,26 @@ int main()
 	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
 	while( IPC::GetTargetThread() != RemoteThreadID )
 	{
-		std::printf(
-			"%c\r",
-			"-\\|/"[
-				(std::chrono::duration_cast<std::chrono::milliseconds>(
-					std::chrono::system_clock::now().time_since_epoch()
-				).count() / 500) % 4
-			]
-		);
+		if( WaitForSingleObject(RemoteThread,0) == WAIT_OBJECT_0 )
+		{
+			std::cout
+				<<
+					"\033[91mRemote thread has terminated before it could report back\n"
+					"It is likely a remote error has occured"
+				<< std::endl;
+			system("pause");
+			return EXIT_FAILURE;
+		}
 		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
 		{
 			std::cout << "\033[91mRemote thread wait timeout: Remote thread did not report back" << std::endl;
 			std::uint32_t ThreadExitCode = 0;
-			GetExitCodeThread(RemoteThread, reinterpret_cast<LPDWORD>(&ThreadExitCode));
+			
+			if( !GetExitCodeThread(RemoteThread, reinterpret_cast<LPDWORD>(&ThreadExitCode)) )
+			{
+				std::cout << "Failed to get remote thread Exit Code" << std::endl;
+				std::wcout << GetLastErrorMessage() << std::endl;
+			}
 			std::cout << "\033[91mRemote thread exit code: " << std::hex << ThreadExitCode << std::endl;
 			if( ThreadExitCode == 0 )
 			{
@@ -199,6 +206,14 @@ int main()
 			system("pause");
 			return EXIT_FAILURE;
 		}
+		std::printf(
+			"%c\r",
+			"-\\|/"[
+				(std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::system_clock::now().time_since_epoch()
+				).count() / 500) % 4
+			]
+		);
 	}
 
 	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
@@ -409,7 +424,7 @@ std::wstring GetRunningDirectory()
 
 std::wstring GetLastErrorMessage()
 {
-	wchar_t Buffer[256];
+	wchar_t Buffer[256] = {0};
 	FormatMessageW(
 		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr,
@@ -419,5 +434,5 @@ std::wstring GetLastErrorMessage()
 		(sizeof(Buffer) / sizeof(wchar_t)),
 		nullptr
 	);
-	return L"{" + std::wstring(Buffer, 256) + L"}";
+	return std::wstring(Buffer, 256);
 }
