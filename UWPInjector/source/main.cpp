@@ -176,13 +176,23 @@ int main()
 
 	Console::SetTextColor(Console::Color::Info);
 	std::cout << "Waiting for remote thread IPC:" << std::endl;
+
+	// Wait for remote thread to signal back
 	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
 	while( IPC::GetTargetThread() == IPC::InvalidThread )
 	{
+		std::printf(
+			"%c\r",
+			"-\\|/"[
+				(std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::system_clock::now().time_since_epoch()
+				).count() / 500) % 4
+			]
+		);
 		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
 		{
 			Console::SetTextColor(Console::Color::Red | Console::Color::Bright);
-			std::cout << "Remote thread wait timeout: Unable to find target thread" << std::endl;
+			std::cout << "Remote thread wait timeout: Remote thread did not report back" << std::endl;
 			system("pause");
 			return EXIT_FAILURE;
 		}
