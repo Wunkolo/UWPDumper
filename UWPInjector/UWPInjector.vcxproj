@@ -127,10 +127,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="source\main.cpp" />
-    <ClCompile Include="source\MinConsole.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="include\MinConsole.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

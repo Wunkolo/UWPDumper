@@ -198,9 +198,10 @@ std::int32_t __stdcall DllMain(HINSTANCE hDLL, std::uint32_t Reason, void* Reser
 	{
 	case DLL_PROCESS_ATTACH:
 	{
+		IPC::PushMessage(L"DLL Attached to process %u\n", GetCurrentProcessId());
 		if( IPC::GetTargetProcess() == GetCurrentProcessId() )
 		{
-			// We are the target process to be dumped
+			IPC::PushMessage(L"Creating dumper thread%u\n");
 			CreateThread(
 				nullptr,
 				0,
