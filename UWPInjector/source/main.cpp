@@ -20,25 +20,6 @@
 // IPC
 #include <UWP/DumperIPC.hpp>
 
-static const bool _WndV100Enabled = []() -> bool
-{
-	const auto Handle = GetStdHandle(STD_OUTPUT_HANDLE);
-	DWORD ConsoleMode;
-	GetConsoleMode(
-		Handle,
-		&ConsoleMode
-	);
-	SetConsoleMode(
-		Handle,
-		ConsoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING
-	);
-	GetConsoleMode(
-		Handle,
-		&ConsoleMode
-	);
-	return ConsoleMode & ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-}();
-
 const wchar_t* DLLFile = L"UWPDumper.dll";
 
 void SetAccessControl(
@@ -91,6 +72,17 @@ void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Da
 
 int main()
 {
+	// Enable VT100
+	const auto Handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	DWORD ConsoleMode;
+	GetConsoleMode(
+		Handle,
+		&ConsoleMode
+	);
+	SetConsoleMode(
+		Handle,
+		ConsoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING
+	);
 	SetConsoleOutputCP(437);
 
 	std::wcout << "\033[92mUWPInjector Build date (" << __DATE__ << " : " << __TIME__ << ')' << std::endl;
