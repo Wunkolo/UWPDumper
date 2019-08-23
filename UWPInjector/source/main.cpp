@@ -310,7 +310,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 		return false;
 	}
 
-	std::size_t BytesWritten = 0;
+	SIZE_T BytesWritten = 0;
 	Result = WriteProcessMemory(
 		Process,
 		VirtualAlloc,
