@@ -16,8 +16,8 @@
 
 #include <queue>
 
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include <UWP/UWP.hpp>
 
@@ -85,6 +85,8 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 	IPC::PushMessage(L"Family Name:\n\t%s\n", UWP::Current::GetFamilyName().c_str());
 
 	IPC::PushMessage(L"Dump Path:\n\t%s\n", DumpPath.c_str());
+	//system("pause");
+	//IPC::PushMessage(L"$p%s", DumpPath.c_str());
 
 	std::vector<fs::directory_entry> FileList;
 
@@ -169,10 +171,8 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 		}
 		catch( std::exception& Exception )
 		{
-			std::wstring ExceptionMessage
-				= std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>{}.from_bytes(
-					Exception.what()
-			);
+			//std::wstring ExceptionMessage = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>{}.from_bytes( Exception.what() );
+
 			IPC::PushMessage(
 				L"Exception {%s}:\n"
 				"\t[%s]\n",
