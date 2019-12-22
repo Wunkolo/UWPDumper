@@ -209,7 +209,7 @@ int main(int argc, char** argv, char** envp)
 	{
 		while( IPC::MessageCount() > 0 )
 		{
-			std::wcout << IPC::PopMessage(); << "\033[0m";
+			std::wcout << IPC::PopMessage() << "\033[0m";
 		}
 	}
 	system("pause");
