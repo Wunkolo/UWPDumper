@@ -174,7 +174,6 @@ int main(int argc, char** argv, char** envp)
 		}
 		std::cout << "\033[93mEnter ProcessID: \033[92m";
 		std::cin >> ProcessID;
-		std::cout << "test";
 	}
 
 	SetAccessControl(GetRunningDirectory() + L'\\' + DLLFile, L"S-1-15-2-1");
