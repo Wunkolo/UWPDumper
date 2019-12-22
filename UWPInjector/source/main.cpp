@@ -209,7 +209,14 @@ int main(int argc, char** argv, char** envp)
 	{
 		while( IPC::MessageCount() > 0 )
 		{
-			std::wcout << IPC::PopMessage() << "\033[0m";
+			std::wstring message = IPC::PopMessage();
+			//check if command symbol is present
+			if (std::wstring(L"$") == message.substr(0, 1)) {
+				//check what is being sent
+				if (std::wstring(L"p") == message.substr(1, 2)) {}
+			} else {
+				std::wcout << message << "\033[0m";
+			}
 		}
 	}
 	system("pause");
