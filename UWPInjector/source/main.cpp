@@ -79,7 +79,6 @@ int main(int argc, char** argv, char** envp)
 	{
 		for (int i = 1; i < argc; ++i) 
 		{
-			std::string arg = argv[i];
 			if (std::string_view(argv[i]) == "-h")
 			{
 				std::cout << "use -p followed by a pid\n";
