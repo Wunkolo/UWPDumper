@@ -118,7 +118,8 @@ int main(int argc, char** argv, char** envp)
 
 	IPC::SetClientProcess(GetCurrentProcessId());
 
-	if (ProcessID == 0) {
+	if (ProcessID == 0)
+	{
 		std::cout << "\033[93mCurrently running UWP Apps:" << std::endl;
 		void* ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 		PROCESSENTRY32 ProcessEntry;
