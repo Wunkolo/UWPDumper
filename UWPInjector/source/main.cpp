@@ -77,7 +77,7 @@ int main(int argc, char** argv, char** envp)
 
 	if (argc > 1)
 	{
-		for (int i = 1; i < argc; ++i) 
+		for (std::size_t i = 1; i < argc; ++i) 
 		{
 			if (std::string_view(argv[i]) == "-h")
 			{
