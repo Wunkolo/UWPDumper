@@ -20,6 +20,7 @@
 // IPC
 #include <UWP/DumperIPC.hpp>
 
+
 const wchar_t* DLLFile = L"UWPDumper.dll";
 
 void SetAccessControl(
@@ -70,8 +71,35 @@ void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Da
 	CloseHandle(hSnapShot);
 }
 
-int main()
+int main(int argc, char** argv, char** envp)
 {
+	std::uint32_t ProcessID = 0;
+
+	if (argc > 1)
+	{
+		for (std::size_t i = 1; i < argc; ++i) 
+		{
+			if (std::string_view(argv[i]) == "-h")
+			{
+				std::cout << "use -p followed by a pid\n";
+				system("pause");
+				return 0;
+			}
+			else if (std::string_view(argv[i]) == "-p")
+			{
+				if (i != argc)
+				{
+					ProcessID = (std::uint32_t)atoi(argv[i + 1]);
+				}
+				else
+				{
+					std::cout << "-p must be followed by a pid\n";
+					system("pause");
+					return 0;
+				}
+			}
+		}
+	}
 	// Enable VT100
 	DWORD ConsoleMode;
 	GetConsoleMode(
@@ -88,72 +116,73 @@ int main()
 	std::wcout << "\033[96m\t\033(0m\033(Bhttps://github.com/Wunkolo/UWPDumper\n";
 	std::wcout << "\033[95m\033(0" << std::wstring(80, 'q') << "\033(B" << std::endl;
 
-	std::uint32_t ProcessID = 0;
-
 	IPC::SetClientProcess(GetCurrentProcessId());
 
-	std::cout << "\033[93mCurrently running UWP Apps:" << std::endl;
-	void* ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	PROCESSENTRY32 ProcessEntry;
-	ProcessEntry.dwSize = sizeof(PROCESSENTRY32);
-
-	if( Process32First(ProcessSnapshot, &ProcessEntry) )
+	if (ProcessID == 0)
 	{
-		while( Process32Next(ProcessSnapshot, &ProcessEntry) )
+		std::cout << "\033[93mCurrently running UWP Apps:" << std::endl;
+		void* ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+		PROCESSENTRY32 ProcessEntry;
+		ProcessEntry.dwSize = sizeof(PROCESSENTRY32);
+
+		if (Process32First(ProcessSnapshot, &ProcessEntry))
 		{
-			void* ProcessHandle = OpenProcess(
-				PROCESS_QUERY_LIMITED_INFORMATION,
-				false,
-				ProcessEntry.th32ProcessID
-			);
-			if( ProcessHandle )
+			while (Process32Next(ProcessSnapshot, &ProcessEntry))
 			{
-				std::uint32_t NameLength = 0;
-				std::int32_t ProcessCode = GetPackageFamilyName(
-					ProcessHandle,
-					&NameLength,
-					nullptr
+				void* ProcessHandle = OpenProcess(
+					PROCESS_QUERY_LIMITED_INFORMATION,
+					false,
+					ProcessEntry.th32ProcessID
 				);
-				if( NameLength )
+				if (ProcessHandle)
 				{
-					std::wcout
-						<< "\033[92m"
-						<< std::setw(12)
-						<< ProcessEntry.th32ProcessID;
-
-					std::wcout
-						<< "\033[96m"
-						<< " \033(0x\033(B "
-						<< ProcessEntry.szExeFile << " :\n\t\t\033(0m\033(B";
-					std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
-
-					ProcessCode = GetPackageFamilyName(
+					std::uint32_t NameLength = 0;
+					std::int32_t ProcessCode = GetPackageFamilyName(
 						ProcessHandle,
 						&NameLength,
-						PackageName.get()
+						nullptr
 					);
-
-					if( ProcessCode != ERROR_SUCCESS )
+					if (NameLength)
 					{
-						std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
+						std::wcout
+							<< "\033[92m"
+							<< std::setw(12)
+							<< ProcessEntry.th32ProcessID;
+
+						std::wcout
+							<< "\033[96m"
+							<< " \033(0x\033(B "
+							<< ProcessEntry.szExeFile << " :\n\t\t\033(0m\033(B";
+						std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
+
+						ProcessCode = GetPackageFamilyName(
+							ProcessHandle,
+							&NameLength,
+							PackageName.get()
+						);
+
+						if (ProcessCode != ERROR_SUCCESS)
+						{
+							std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
+						}
+
+						std::wcout << PackageName.get() << std::endl;
+
+						PackageName.reset();
 					}
-
-					std::wcout << PackageName.get() << std::endl;
-
-					PackageName.reset();
 				}
+				CloseHandle(ProcessHandle);
 			}
-			CloseHandle(ProcessHandle);
 		}
+		else
+		{
+			std::cout << "\033[91mUnable to iterate active processes" << std::endl;
+			system("pause");
+			return EXIT_FAILURE;
+		}
+		std::cout << "\033[93mEnter ProcessID: \033[92m";
+		std::cin >> ProcessID;
 	}
-	else
-	{
-		std::cout << "\033[91mUnable to iterate active processes" << std::endl;
-		system("pause");
-		return EXIT_FAILURE;
-	}
-	std::cout << "\033[93mEnter ProcessID: \033[92m";
-	std::cin >> ProcessID;
 
 	SetAccessControl(GetRunningDirectory() + L'\\' + DLLFile, L"S-1-15-2-1");
 

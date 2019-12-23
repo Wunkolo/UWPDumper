@@ -16,8 +16,8 @@
 
 #include <queue>
 
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include <UWP/UWP.hpp>
 
@@ -169,10 +169,8 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 		}
 		catch( std::exception& Exception )
 		{
-			std::wstring ExceptionMessage
-				= std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>{}.from_bytes(
-					Exception.what()
-			);
+			//std::wstring ExceptionMessage = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>{}.from_bytes( Exception.what() );
+
 			IPC::PushMessage(
 				L"Exception {%s}:\n"
 				"\t[%s]\n",

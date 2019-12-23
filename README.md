@@ -15,4 +15,8 @@ App file system will be dumped into:
 
 `C:\Users\(Username)\AppData\Local\Packages\(Package Family Name)\TempState\DUMP`
 
+To get a list of command line arguments run the command
+
+`UWPInjector.exe -h`
+
 UWPDumper requires the [Windows 10 SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk) to be compiled.
