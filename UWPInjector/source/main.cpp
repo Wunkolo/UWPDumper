@@ -75,17 +75,25 @@ int main(int argc, char** argv, char** envp)
 {
 	std::uint32_t ProcessID = 0;
 
-	if (true) {
-		for (int i = 1; i < argc; i++) {
+	if (argc > 1)
+	{
+		for (int i = 1; i < argc; ++i) 
+		{
 			std::string arg = argv[i];
-			if ( arg == "-h" ){
+			if (std::string_view(argv[i]) == "-h")
+			{
 				std::cout << "use -p followed by a pid\n";
 				system("pause");
 				return 0;
-			} else if (arg == "-p") {
-				if (i != argc) {
+			}
+			else if (std::string_view(argv[i]) == "-p")
+			{
+				if (i != argc)
+				{
 					ProcessID = (std::uint32_t)atoi(argv[i + 1]);
-				} else {
+				}
+				else
+				{
 					std::cout << "-p must be followed by a pid\n";
 					system("pause");
 					return 0;
