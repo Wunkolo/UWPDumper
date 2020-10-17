@@ -1,8 +1,12 @@
 #include <iostream>
+#include <chrono>
+#include <ctime>
+#include <fstream>
 #include <iomanip>
 #include <string>
 #include <memory>
 #include <chrono>
+#include <filesystem>
 
 #include <windows.h>
 #include <psapi.h> //GetModuleFileNameEx
@@ -211,14 +215,66 @@ int main(int argc, char** argv, char** envp)
 
 	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
 
+	//get time for filename
+	std::time_t result = std::time(nullptr);
+	char TimeString[26];
+	ctime_s(TimeString, sizeof(TimeString), &result);
+	std::string LogFileName = TimeString;
+	std::replace(LogFileName.begin(), LogFileName.end(), ':', '-');
+	LogFileName.erase(std::remove(LogFileName.begin(), LogFileName.end(), '\n'), LogFileName.end());
+
+	//get proccess name for filename
+	HANDLE hProcess = OpenProcess(
+		PROCESS_ALL_ACCESS | 
+		PROCESS_QUERY_INFORMATION |
+		PROCESS_VM_READ,
+		FALSE, 
+		ProcessID);
+
+	if ( hProcess )
+	{
+		TCHAR Buffer[MAX_PATH];
+		if ( GetModuleFileNameEx(hProcess, 0, Buffer, MAX_PATH) )
+		{
+			// At this point, buffer contains the full path to the executable
+			std::filesystem::path FileName(Buffer);
+			std::string tempstring = FileName.stem().generic_string();
+			LogFileName = FileName.stem().generic_string() + " " + LogFileName;
+		}
+		else
+		{
+			std::cout << "\033[91mFailed to get process Name" << std::endl;
+			system("pause");
+			return EXIT_FAILURE;
+		}
+		CloseHandle(hProcess);
+	}
+	
+	//attempt to create file
+	std::cout << LogFileName;
+	std::wofstream LogFile((LogFileName + ".txt"));
+	if ( LogFile.is_open() )
+	{
+		std::cout << "\033[92mLogging to File: " << LogFileName << ".txt"<<"\n\033[0m";
+	}
+	else
+	{
+		std::cout << "\033[91mFailed to open log file\n\033[0m";
+		return EXIT_FAILURE;
+	}
+
 	std::cout << "\033[0m" << std::flush;
 	while( IPC::GetTargetThread() != IPC::InvalidThread )
 	{
 		while( IPC::MessageCount() > 0 )
 		{
-			std::wcout << IPC::PopMessage() << "\033[0m";
+			const std::wstring TempMessage = IPC::PopMessage();
+			std::wcout << TempMessage << "\033[0m";
+			LogFile << TempMessage;
 		}
 	}
+	//close log file
+	LogFile.close();
 	system("pause");
 	return EXIT_SUCCESS;
 }
