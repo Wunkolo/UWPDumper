@@ -79,14 +79,17 @@ void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Da
 int main(int argc, char** argv, char** envp)
 {
 	std::uint32_t ProcessID = 0;
-
+	bool Logging = false;
 	if (argc > 1)
 	{
-		for (std::size_t i = 1; i < argc; ++i) 
+		for (std::size_t i = 1; i < argc; ++i)
 		{
 			if (std::string_view(argv[i]) == "-h")
 			{
-				std::cout << "use -p followed by a pid\n";
+				std::cout << "To Set PID:\n";
+				std::cout << "-p {pid}\n";
+				std::cout << "To Enable Logging:\n";
+				std::cout << "-l \n";
 				system("pause");
 				return 0;
 			}
@@ -102,6 +105,10 @@ int main(int argc, char** argv, char** envp)
 					system("pause");
 					return 0;
 				}
+			}
+			else if (std::string_view(argv[i]) == "-l")
+			{
+				Logging = true;
 			}
 		}
 	}
@@ -194,7 +201,7 @@ int main(int argc, char** argv, char** envp)
 	IPC::SetTargetProcess(ProcessID);
 
 	std::cout << "\033[93mInjecting into remote process: ";
-	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile) )
+	if (!DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile))
 	{
 		std::cout << "\033[91mFailed" << std::endl;
 		system("pause");
@@ -204,9 +211,9 @@ int main(int argc, char** argv, char** envp)
 
 	std::cout << "\033[93mWaiting for remote thread IPC:" << std::endl;
 	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
-	while( IPC::GetTargetThread() == IPC::InvalidThread )
+	while (IPC::GetTargetThread() == IPC::InvalidThread)
 	{
-		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
+		if (std::chrono::high_resolution_clock::now() >= ThreadTimeout)
 		{
 			std::cout << "\033[91mRemote thread wait timeout: Unable to find target thread" << std::endl;
 			system("pause");
@@ -215,74 +222,77 @@ int main(int argc, char** argv, char** envp)
 	}
 
 	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
-
-	std::filesystem::path LogFilePath = std::filesystem::current_path();
-
-	// Get package name for log file
-	if(
-		HANDLE ProcessHandle = OpenProcess(
-			PROCESS_ALL_ACCESS | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-			false,
-			ProcessID
-		); ProcessHandle
-	)
+	std::wofstream LogFile;
+	if ( Logging )
 	{
-		std::uint32_t NameLength = 0;
-		std::int32_t ProcessCode = GetPackageFamilyName(
-			ProcessHandle,
-			&NameLength,
-			nullptr
-		);
-		if (NameLength)
-		{
-			std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
+		std::filesystem::path LogFilePath = std::filesystem::current_path();
 
-			ProcessCode = GetPackageFamilyName(
+		// Get package name for log file
+		if (
+			HANDLE ProcessHandle = OpenProcess(
+				PROCESS_ALL_ACCESS | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+				false,
+				ProcessID
+			); ProcessHandle
+			)
+		{
+			std::uint32_t NameLength = 0;
+			std::int32_t ProcessCode = GetPackageFamilyName(
 				ProcessHandle,
 				&NameLength,
-				PackageName.get()
+				nullptr
 			);
-
-			if (ProcessCode != ERROR_SUCCESS)
+			if (NameLength)
 			{
-				std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
+				std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
+
+				ProcessCode = GetPackageFamilyName(
+					ProcessHandle,
+					&NameLength,
+					PackageName.get()
+				);
+
+				if (ProcessCode != ERROR_SUCCESS)
+				{
+					std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
+				}
+				LogFilePath.append(PackageName.get());
+				LogFilePath.concat(" ");
 			}
-			LogFilePath.append(PackageName.get());
-			LogFilePath.concat(" ");
+			CloseHandle(ProcessHandle);
 		}
-		CloseHandle(ProcessHandle);
-	}
-	else
-	{
-		std::cout << "\033[91mFailed to query process for " << std::endl;
-		system("pause");
-		return EXIT_FAILURE;
-	}
-	
+		else
+		{
+			std::cout << "\033[91mFailed to query process for " << std::endl;
+			system("pause");
+			return EXIT_FAILURE;
+		}
 
-	// Get timestamp for log file name
-	{
-		std::time_t CurrentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-		std::stringstream TimeString;
-		struct tm TimeBuffer;
-		gmtime_s(&TimeBuffer, &CurrentTime);
-		TimeString << std::put_time(&TimeBuffer, "%Y%m%dT%H%M%S");
-		LogFilePath.concat(TimeString.str());
-	}
 
-	// Attempt to create file
-	LogFilePath.concat(".txt");
-	std::cout << LogFilePath << std::endl;
-	std::wofstream LogFile(LogFilePath);
-	if ( LogFile.is_open() )
-	{
-		std::cout << "\033[92mLogging to File: " << LogFilePath << "\033[0m" << std::endl;
-	}
-	else
-	{
-		std::cout << "\033[91mFailed to open log file\033[0m" << std::endl;;
-		system("pause");
-		return EXIT_FAILURE;
+		// Get timestamp for log file name
+		{
+			std::time_t CurrentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			std::stringstream TimeString;
+			struct tm TimeBuffer;
+			gmtime_s(&TimeBuffer, &CurrentTime);
+			TimeString << std::put_time(&TimeBuffer, "%Y%m%dT%H%M%S");
+			LogFilePath.concat(TimeString.str());
+		}
+
+		// Attempt to create file
+		LogFilePath.concat(".txt");
+		std::cout << LogFilePath << std::endl;
+		LogFile = std::wofstream(LogFilePath);
+		if (LogFile.is_open())
+		{
+			std::cout << "\033[92mLogging to File: " << LogFilePath << "\033[0m" << std::endl;
+		}
+		else
+		{
+			std::cout << "\033[91mFailed to open log file\033[0m" << std::endl;;
+			system("pause");
+			return EXIT_FAILURE;
+		}
 	}
 
 	std::cout << "\033[0m" << std::flush;
@@ -293,10 +303,15 @@ int main(int argc, char** argv, char** envp)
 		while( IPC::PopMessage(CurMessage) )
 		{
 			std::wcout << CurMessage << "\033[0m";
-			LogFile << CurMessage << std::flush;
+			if ( Logging )
+			{
+				LogFile << CurMessage << std::flush;
+			}
 		}
 	}
-	LogFile.close();
+	if ( Logging ) {
+		LogFile.close();
+	}
 	system("pause");
 	return EXIT_SUCCESS;
 }
