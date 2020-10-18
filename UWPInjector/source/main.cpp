@@ -2,6 +2,7 @@
 #include <chrono>
 #include <ctime>
 #include <fstream>
+#include <sstream>
 #include <iomanip>
 #include <string>
 #include <memory>
@@ -215,65 +216,86 @@ int main(int argc, char** argv, char** envp)
 
 	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
 
-	//get time for filename
-	std::time_t result = std::time(nullptr);
-	char TimeString[26];
-	ctime_s(TimeString, sizeof(TimeString), &result);
-	std::string LogFileName = TimeString;
-	std::replace(LogFileName.begin(), LogFileName.end(), ':', '-');
-	LogFileName.erase(std::remove(LogFileName.begin(), LogFileName.end(), '\n'), LogFileName.end());
+	std::filesystem::path LogFilePath = std::filesystem::current_path();
 
-	//get proccess name for filename
-	HANDLE hProcess = OpenProcess(
-		PROCESS_ALL_ACCESS | 
-		PROCESS_QUERY_INFORMATION |
-		PROCESS_VM_READ,
-		FALSE, 
-		ProcessID);
+	// Get package name for log file
+	if(
+		HANDLE ProcessHandle = OpenProcess(
+			PROCESS_ALL_ACCESS | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+			false,
+			ProcessID
+		); ProcessHandle
+	)
+	{
+		std::uint32_t NameLength = 0;
+		std::int32_t ProcessCode = GetPackageFamilyName(
+			ProcessHandle,
+			&NameLength,
+			nullptr
+		);
+		if (NameLength)
+		{
+			std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
 
-	if ( hProcess )
-	{
-		TCHAR Buffer[MAX_PATH];
-		if ( GetModuleFileNameEx(hProcess, 0, Buffer, MAX_PATH) )
-		{
-			// At this point, buffer contains the full path to the executable
-			std::filesystem::path FileName(Buffer);
-			std::string tempstring = FileName.stem().generic_string();
-			LogFileName = FileName.stem().generic_string() + " " + LogFileName;
+			ProcessCode = GetPackageFamilyName(
+				ProcessHandle,
+				&NameLength,
+				PackageName.get()
+			);
+
+			if (ProcessCode != ERROR_SUCCESS)
+			{
+				std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
+			}
+			LogFilePath.append(PackageName.get());
+			LogFilePath.concat(" ");
 		}
-		else
-		{
-			std::cout << "\033[91mFailed to get process Name" << std::endl;
-			system("pause");
-			return EXIT_FAILURE;
-		}
-		CloseHandle(hProcess);
-	}
-	
-	//attempt to create file
-	std::cout << LogFileName;
-	std::wofstream LogFile((LogFileName + ".txt"));
-	if ( LogFile.is_open() )
-	{
-		std::cout << "\033[92mLogging to File: " << LogFileName << ".txt"<<"\n\033[0m";
+		CloseHandle(ProcessHandle);
 	}
 	else
 	{
-		std::cout << "\033[91mFailed to open log file\n\033[0m";
+		std::cout << "\033[91mFailed to query process for " << std::endl;
+		system("pause");
+		return EXIT_FAILURE;
+	}
+	
+
+	// Get timestamp for log file name
+	{
+		std::time_t CurrentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		std::stringstream TimeString;
+		struct tm TimeBuffer;
+		gmtime_s(&TimeBuffer, &CurrentTime);
+		TimeString << std::put_time(&TimeBuffer, "%Y%m%dT%H%M%S");
+		LogFilePath.concat(TimeString.str());
+	}
+
+	// Attempt to create file
+	LogFilePath.concat(".txt");
+	std::cout << LogFilePath << std::endl;
+	std::wofstream LogFile(LogFilePath);
+	if ( LogFile.is_open() )
+	{
+		std::cout << "\033[92mLogging to File: " << LogFilePath << "\033[0m" << std::endl;
+	}
+	else
+	{
+		std::cout << "\033[91mFailed to open log file\033[0m" << std::endl;;
+		system("pause");
 		return EXIT_FAILURE;
 	}
 
 	std::cout << "\033[0m" << std::flush;
+	std::wstring CurMessage;
+	CurMessage.reserve(IPC::MessageEntry::StringSize);
 	while( IPC::GetTargetThread() != IPC::InvalidThread )
 	{
-		while( IPC::MessageCount() > 0 )
+		while( IPC::PopMessage(CurMessage) )
 		{
-			const std::wstring TempMessage = IPC::PopMessage();
-			std::wcout << TempMessage << "\033[0m";
-			LogFile << TempMessage;
+			std::wcout << CurMessage << "\033[0m";
+			LogFile << CurMessage << std::flush;
 		}
 	}
-	//close log file
 	LogFile.close();
 	system("pause");
 	return EXIT_SUCCESS;
