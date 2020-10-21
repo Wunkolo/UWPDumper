@@ -25,6 +25,7 @@
 // IPC
 #include <UWP/DumperIPC.hpp>
 
+#define REPARSE_MOUNTPOINT_HEADER_SIZE   8
 
 const wchar_t* DLLFile = L"UWPDumper.dll";
 
@@ -41,6 +42,61 @@ using ThreadCallback = bool(*)(
 	std::uint32_t ThreadID,
 	void* Data
 );
+
+typedef struct {
+	DWORD ReparseTag;
+	DWORD ReparseDataLength;
+	WORD Reserved;
+	WORD ReparseTargetLength;
+	WORD ReparseTargetMaximumLength;
+	WORD Reserved1;
+	WCHAR ReparseTarget[1];
+} REPARSE_MOUNTPOINT_DATA_BUFFER, * PREPARSE_MOUNTPOINT_DATA_BUFFER;
+
+static void CreateJunction(LPCSTR szJunction, LPCSTR szPath) {
+	BYTE buf[sizeof(REPARSE_MOUNTPOINT_DATA_BUFFER) + MAX_PATH * sizeof(WCHAR)];
+	REPARSE_MOUNTPOINT_DATA_BUFFER& ReparseBuffer = (REPARSE_MOUNTPOINT_DATA_BUFFER&)buf;
+	char szTarget[MAX_PATH] = "\\??\\";
+
+	strcat_s(szTarget, szPath);
+	strcat_s(szTarget, "\\");
+
+	if (!::CreateDirectory(szJunction, NULL)) throw ::GetLastError();
+
+	// Obtain SE_RESTORE_NAME privilege (required for opening a directory)
+	HANDLE hToken = NULL;
+	TOKEN_PRIVILEGES tp;
+	try {
+		if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken)) throw ::GetLastError();
+		if (!::LookupPrivilegeValue(NULL, SE_RESTORE_NAME, &tp.Privileges[0].Luid))  throw ::GetLastError();
+		tp.PrivilegeCount = 1;
+		tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+		if (!::AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL))  throw ::GetLastError();
+	}
+	catch (DWORD) {}   // Ignore errors
+	if (hToken) ::CloseHandle(hToken);
+
+	HANDLE hDir = ::CreateFile(szJunction, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, NULL);
+	if (hDir == INVALID_HANDLE_VALUE) throw ::GetLastError();
+
+	memset(buf, 0, sizeof(buf));
+	ReparseBuffer.ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;
+	int len = ::MultiByteToWideChar(CP_ACP, 0, szTarget, -1, ReparseBuffer.ReparseTarget, MAX_PATH);
+	ReparseBuffer.ReparseTargetMaximumLength = (len--) * sizeof(WCHAR);
+	ReparseBuffer.ReparseTargetLength = len * sizeof(WCHAR);
+	ReparseBuffer.ReparseDataLength = ReparseBuffer.ReparseTargetLength + 12;
+
+	DWORD dwRet;
+	if (!::DeviceIoControl(hDir, FSCTL_SET_REPARSE_POINT, &ReparseBuffer, ReparseBuffer.ReparseDataLength + REPARSE_MOUNTPOINT_HEADER_SIZE, NULL, 0, &dwRet, NULL)) {
+		DWORD dr = ::GetLastError();
+		::CloseHandle(hDir);
+		::RemoveDirectory(szJunction);
+		throw dr;
+	}
+
+	::CloseHandle(hDir);
+} // CreateJunction
+
 
 void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Data)
 {
@@ -76,9 +132,12 @@ void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Da
 	CloseHandle(hSnapShot);
 }
 
+
+
 int main(int argc, char** argv, char** envp)
 {
 	std::uint32_t ProcessID = 0;
+	std::filesystem::path TargetPath("C:\\");
 	bool Logging = false;
 	if (argc > 1)
 	{
@@ -87,9 +146,13 @@ int main(int argc, char** argv, char** envp)
 			if (std::string_view(argv[i]) == "-h")
 			{
 				std::cout << "To Set PID:\n";
-				std::cout << "-p {pid}\n";
+				std::cout << "	  -p {pid}\n";
+				std::cout << "EG: -p 1234\n";
 				std::cout << "To Enable Logging:\n";
-				std::cout << "-l \n";
+				std::cout << "    -l \n";
+				std::cout << "To Dump To A Custom Folder:\n";
+				std::cout << "    -d {folder} \n";
+				std::cout << "EG: -d D:\\uwp\\dumps\\calculator \n";
 				system("pause");
 				return 0;
 			}
@@ -109,6 +172,19 @@ int main(int argc, char** argv, char** envp)
 			else if (std::string_view(argv[i]) == "-l")
 			{
 				Logging = true;
+			}
+			else if (std::string_view(argv[i]) == "-d")
+			{
+				if (i != argc)
+				{
+					TargetPath = argv[i + 1];
+				}
+				else
+				{
+					std::cout << "-d must be followed by the custom location\n";
+					system("pause");
+					return 0;
+				}
 			}
 		}
 	}
@@ -196,6 +272,69 @@ int main(int argc, char** argv, char** envp)
 		std::cin >> ProcessID;
 	}
 
+	// Get package name
+	std::wstring PackageFileName;
+
+	if (
+		HANDLE ProcessHandle = OpenProcess(
+			PROCESS_ALL_ACCESS | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+			false,
+			ProcessID
+		); ProcessHandle
+		)
+	{
+		std::uint32_t NameLength = 0;
+		std::int32_t ProcessCode = GetPackageFamilyName(
+			ProcessHandle,
+			&NameLength,
+			nullptr
+		);
+		if (NameLength)
+		{
+			std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
+
+			ProcessCode = GetPackageFamilyName(
+				ProcessHandle,
+				&NameLength,
+				PackageName.get()
+			);
+
+			if (ProcessCode != ERROR_SUCCESS)
+			{
+				std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
+			}
+			PackageFileName = PackageName.get();
+		}
+		CloseHandle(ProcessHandle);
+	}
+	else
+	{
+		std::cout << "\033[91mFailed to query process for " << std::endl;
+		system("pause");
+		return EXIT_FAILURE;
+	}
+
+	//get local app data folder
+	std::wofstream LogFile;
+	char* LocalAppData;
+	size_t len;
+	errno_t err = _dupenv_s(&LocalAppData, &len, "LOCALAPPDATA");
+
+	if ( TargetPath != std::filesystem::path("C:\\") )
+	{
+		//get dump folder path
+		std::filesystem::path DumpFolderPath(LocalAppData);
+		DumpFolderPath.append("Packages");
+		DumpFolderPath.append(PackageFileName);
+		DumpFolderPath.append("TempState\\DUMP");
+		//clear out dump folder
+		std::filesystem::remove_all(DumpFolderPath);
+		//create junction
+		CreateJunction(DumpFolderPath.string().c_str(), TargetPath.string().c_str());
+		//set acl for target directory
+		SetAccessControl(TargetPath, L"S-1-15-2-1");
+	}
+
 	SetAccessControl(GetRunningDirectory() + L'\\' + DLLFile, L"S-1-15-2-1");
 
 	IPC::SetTargetProcess(ProcessID);
@@ -222,52 +361,13 @@ int main(int argc, char** argv, char** envp)
 	}
 
 	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
-	std::wofstream LogFile;
+	
 	if ( Logging )
 	{
 		std::filesystem::path LogFilePath = std::filesystem::current_path();
-
-		// Get package name for log file
-		if (
-			HANDLE ProcessHandle = OpenProcess(
-				PROCESS_ALL_ACCESS | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-				false,
-				ProcessID
-			); ProcessHandle
-			)
-		{
-			std::uint32_t NameLength = 0;
-			std::int32_t ProcessCode = GetPackageFamilyName(
-				ProcessHandle,
-				&NameLength,
-				nullptr
-			);
-			if (NameLength)
-			{
-				std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
-
-				ProcessCode = GetPackageFamilyName(
-					ProcessHandle,
-					&NameLength,
-					PackageName.get()
-				);
-
-				if (ProcessCode != ERROR_SUCCESS)
-				{
-					std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
-				}
-				LogFilePath.append(PackageName.get());
-				LogFilePath.concat(" ");
-			}
-			CloseHandle(ProcessHandle);
-		}
-		else
-		{
-			std::cout << "\033[91mFailed to query process for " << std::endl;
-			system("pause");
-			return EXIT_FAILURE;
-		}
-
+		//add package Name to logfile Path
+		LogFilePath.append(PackageFileName);
+		LogFilePath.concat(" ");
 
 		// Get timestamp for log file name
 		{
@@ -343,7 +443,7 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 		ConvertStringSidToSidW(AccessString, &SecurityIdentifier);
 		if( SecurityIdentifier != nullptr )
 		{
-			ExplicitAccess.grfAccessPermissions = GENERIC_READ | GENERIC_EXECUTE;
+			ExplicitAccess.grfAccessPermissions = GENERIC_READ | GENERIC_EXECUTE | GENERIC_WRITE;
 			ExplicitAccess.grfAccessMode = SET_ACCESS;
 			ExplicitAccess.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
 			ExplicitAccess.Trustee.TrusteeForm = TRUSTEE_IS_SID;
