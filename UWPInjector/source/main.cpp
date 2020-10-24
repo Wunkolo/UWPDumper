@@ -53,49 +53,56 @@ typedef struct {
 	WCHAR ReparseTarget[1];
 } REPARSE_MOUNTPOINT_DATA_BUFFER, * PREPARSE_MOUNTPOINT_DATA_BUFFER;
 
-static void CreateJunction(LPCSTR szJunction, LPCSTR szPath) {
-	BYTE buf[sizeof(REPARSE_MOUNTPOINT_DATA_BUFFER) + MAX_PATH * sizeof(WCHAR)];
+static DWORD CreateJunction(LPCSTR szJunction, LPCSTR szPath)
+{
+	DWORD LastError = ERROR_SUCCESS;
+	std::byte buf[sizeof(REPARSE_MOUNTPOINT_DATA_BUFFER) + MAX_PATH * sizeof(WCHAR)] = {};
 	REPARSE_MOUNTPOINT_DATA_BUFFER& ReparseBuffer = (REPARSE_MOUNTPOINT_DATA_BUFFER&)buf;
-	char szTarget[MAX_PATH] = "\\??\\";
+	char szTarget[MAX_PATH] = {};
 
 	strcat_s(szTarget, szPath);
 	strcat_s(szTarget, "\\");
 
-	if (!::CreateDirectory(szJunction, NULL)) throw ::GetLastError();
+	if( !CreateDirectory(szJunction, nullptr) ) return GetLastError();
 
 	// Obtain SE_RESTORE_NAME privilege (required for opening a directory)
-	HANDLE hToken = NULL;
+	HANDLE hToken = nullptr;
 	TOKEN_PRIVILEGES tp;
 	try {
-		if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken)) throw ::GetLastError();
-		if (!::LookupPrivilegeValue(NULL, SE_RESTORE_NAME, &tp.Privileges[0].Luid))  throw ::GetLastError();
+		if( !OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken)) throw GetLastError();
+		if( !LookupPrivilegeValue(nullptr, SE_RESTORE_NAME, &tp.Privileges[0].Luid))  throw GetLastError();
 		tp.PrivilegeCount = 1;
 		tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-		if (!::AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL))  throw ::GetLastError();
+		if( !AdjustTokenPrivileges(hToken, false, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr) )  throw GetLastError();
 	}
-	catch (DWORD) {}   // Ignore errors
-	if (hToken) ::CloseHandle(hToken);
+	catch (DWORD LastError)
+	{
+		if( hToken ) CloseHandle(hToken);
+		return LastError;
+	}
+	if( hToken ) CloseHandle(hToken);
 
-	HANDLE hDir = ::CreateFile(szJunction, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, NULL);
-	if (hDir == INVALID_HANDLE_VALUE) throw ::GetLastError();
+	const HANDLE hDir = CreateFile(szJunction, GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+	if( hDir == INVALID_HANDLE_VALUE ) return GetLastError();
 
-	memset(buf, 0, sizeof(buf));
 	ReparseBuffer.ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;
-	int len = ::MultiByteToWideChar(CP_ACP, 0, szTarget, -1, ReparseBuffer.ReparseTarget, MAX_PATH);
-	ReparseBuffer.ReparseTargetMaximumLength = (len--) * sizeof(WCHAR);
-	ReparseBuffer.ReparseTargetLength = len * sizeof(WCHAR);
+	int32_t len = MultiByteToWideChar(CP_ACP, 0, szTarget, -1, ReparseBuffer.ReparseTarget, MAX_PATH);
+	ReparseBuffer.ReparseTargetMaximumLength = static_cast<WORD>((len--) * sizeof(WCHAR));
+	ReparseBuffer.ReparseTargetLength = static_cast<WORD>(len * sizeof(WCHAR));
 	ReparseBuffer.ReparseDataLength = ReparseBuffer.ReparseTargetLength + 12;
 
 	DWORD dwRet;
-	if (!::DeviceIoControl(hDir, FSCTL_SET_REPARSE_POINT, &ReparseBuffer, ReparseBuffer.ReparseDataLength + REPARSE_MOUNTPOINT_HEADER_SIZE, NULL, 0, &dwRet, NULL)) {
-		DWORD dr = ::GetLastError();
-		::CloseHandle(hDir);
-		::RemoveDirectory(szJunction);
-		throw dr;
+	if( !DeviceIoControl(hDir, FSCTL_SET_REPARSE_POINT, &ReparseBuffer, ReparseBuffer.ReparseDataLength + REPARSE_MOUNTPOINT_HEADER_SIZE, nullptr, 0, &dwRet, nullptr) )
+	{
+		LastError = GetLastError();
+		CloseHandle(hDir);
+		RemoveDirectory(szJunction);
+		return LastError;
 	}
 
-	::CloseHandle(hDir);
-} // CreateJunction
+	CloseHandle(hDir);
+	return ERROR_SUCCESS;
+}
 
 
 void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Data)
@@ -139,11 +146,11 @@ int main(int argc, char** argv, char** envp)
 	std::uint32_t ProcessID = 0;
 	std::filesystem::path TargetPath("C:\\");
 	bool Logging = false;
-	if (argc > 1)
+	if( argc > 1 )
 	{
-		for (std::size_t i = 1; i < argc; ++i)
+		for( std::size_t i = 1; i < argc; ++i )
 		{
-			if (std::string_view(argv[i]) == "-h")
+			if( std::string_view(argv[i]) == "-h" )
 			{
 				std::cout << "To Set PID:\n";
 				std::cout << "	  -p {pid}\n";
@@ -156,9 +163,9 @@ int main(int argc, char** argv, char** envp)
 				system("pause");
 				return 0;
 			}
-			else if (std::string_view(argv[i]) == "-p")
+			else if( std::string_view(argv[i]) == "-p" )
 			{
-				if (i != argc)
+				if( i != argc)
 				{
 					ProcessID = (std::uint32_t)atoi(argv[i + 1]);
 				}
@@ -169,13 +176,13 @@ int main(int argc, char** argv, char** envp)
 					return 0;
 				}
 			}
-			else if (std::string_view(argv[i]) == "-l")
+			else if( std::string_view(argv[i]) == "-l" )
 			{
 				Logging = true;
 			}
-			else if (std::string_view(argv[i]) == "-d")
+			else if( std::string_view(argv[i]) == "-d" )
 			{
-				if (i != argc)
+				if( i != argc )
 				{
 					TargetPath = argv[i + 1];
 				}
@@ -206,31 +213,29 @@ int main(int argc, char** argv, char** envp)
 
 	IPC::SetClientProcess(GetCurrentProcessId());
 
-	if (ProcessID == 0)
+	if( ProcessID == 0)
 	{
 		std::cout << "\033[93mCurrently running UWP Apps:" << std::endl;
 		void* ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 		PROCESSENTRY32 ProcessEntry;
 		ProcessEntry.dwSize = sizeof(PROCESSENTRY32);
 
-		if (Process32First(ProcessSnapshot, &ProcessEntry))
+		if( Process32First(ProcessSnapshot, &ProcessEntry) )
 		{
-			while (Process32Next(ProcessSnapshot, &ProcessEntry))
+			while (Process32Next(ProcessSnapshot, &ProcessEntry) )
 			{
 				void* ProcessHandle = OpenProcess(
 					PROCESS_QUERY_LIMITED_INFORMATION,
 					false,
 					ProcessEntry.th32ProcessID
 				);
-				if (ProcessHandle)
+				if( ProcessHandle)
 				{
 					std::uint32_t NameLength = 0;
 					std::int32_t ProcessCode = GetPackageFamilyName(
-						ProcessHandle,
-						&NameLength,
-						nullptr
+						ProcessHandle, &NameLength, nullptr
 					);
-					if (NameLength)
+					if( NameLength)
 					{
 						std::wcout
 							<< "\033[92m"
@@ -249,7 +254,7 @@ int main(int argc, char** argv, char** envp)
 							PackageName.get()
 						);
 
-						if (ProcessCode != ERROR_SUCCESS)
+						if( ProcessCode != ERROR_SUCCESS)
 						{
 							std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
 						}
@@ -275,31 +280,26 @@ int main(int argc, char** argv, char** envp)
 	// Get package name
 	std::wstring PackageFileName;
 
-	if (
+	if( 
 		HANDLE ProcessHandle = OpenProcess(
 			PROCESS_ALL_ACCESS | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-			false,
-			ProcessID
+			false, ProcessID
 		); ProcessHandle
 		)
 	{
 		std::uint32_t NameLength = 0;
 		std::int32_t ProcessCode = GetPackageFamilyName(
-			ProcessHandle,
-			&NameLength,
-			nullptr
+			ProcessHandle, &NameLength, nullptr
 		);
-		if (NameLength)
+		if( NameLength )
 		{
 			std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
 
 			ProcessCode = GetPackageFamilyName(
-				ProcessHandle,
-				&NameLength,
-				PackageName.get()
+				ProcessHandle, &NameLength, PackageName.get()
 			);
 
-			if (ProcessCode != ERROR_SUCCESS)
+			if( ProcessCode != ERROR_SUCCESS )
 			{
 				std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
 			}
@@ -320,7 +320,7 @@ int main(int argc, char** argv, char** envp)
 	size_t len;
 	errno_t err = _dupenv_s(&LocalAppData, &len, "LOCALAPPDATA");
 
-	if ( TargetPath != std::filesystem::path("C:\\") )
+	if( TargetPath != std::filesystem::path("C:\\") )
 	{
 		//get dump folder path
 		std::filesystem::path DumpFolderPath(LocalAppData);
@@ -340,7 +340,7 @@ int main(int argc, char** argv, char** envp)
 	IPC::SetTargetProcess(ProcessID);
 
 	std::cout << "\033[93mInjecting into remote process: ";
-	if (!DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile))
+	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile) )
 	{
 		std::cout << "\033[91mFailed" << std::endl;
 		system("pause");
@@ -350,9 +350,9 @@ int main(int argc, char** argv, char** envp)
 
 	std::cout << "\033[93mWaiting for remote thread IPC:" << std::endl;
 	std::chrono::high_resolution_clock::time_point ThreadTimeout = std::chrono::high_resolution_clock::now() + std::chrono::seconds(5);
-	while (IPC::GetTargetThread() == IPC::InvalidThread)
+	while( IPC::GetTargetThread() == IPC::InvalidThread )
 	{
-		if (std::chrono::high_resolution_clock::now() >= ThreadTimeout)
+		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
 		{
 			std::cout << "\033[91mRemote thread wait timeout: Unable to find target thread" << std::endl;
 			system("pause");
@@ -362,7 +362,7 @@ int main(int argc, char** argv, char** envp)
 
 	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
 	
-	if ( Logging )
+	if( Logging )
 	{
 		std::filesystem::path LogFilePath = std::filesystem::current_path();
 		//add package Name to logfile Path
@@ -383,7 +383,7 @@ int main(int argc, char** argv, char** envp)
 		LogFilePath.concat(".txt");
 		std::cout << LogFilePath << std::endl;
 		LogFile = std::wofstream(LogFilePath);
-		if (LogFile.is_open())
+		if( LogFile.is_open() )
 		{
 			std::cout << "\033[92mLogging to File: " << LogFilePath << "\033[0m" << std::endl;
 		}
@@ -403,15 +403,13 @@ int main(int argc, char** argv, char** envp)
 		while( IPC::PopMessage(CurMessage) )
 		{
 			std::wcout << CurMessage << "\033[0m";
-			if ( Logging )
+			if( Logging )
 			{
 				LogFile << CurMessage << std::flush;
 			}
 		}
 	}
-	if ( Logging ) {
-		LogFile.close();
-	}
+	if( Logging ) LogFile.close();
 	system("pause");
 	return EXIT_SUCCESS;
 }
