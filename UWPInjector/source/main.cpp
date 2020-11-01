@@ -58,10 +58,10 @@ static DWORD CreateJunction(LPCSTR szJunction, LPCSTR szPath)
 	DWORD LastError = ERROR_SUCCESS;
 	std::byte buf[sizeof(REPARSE_MOUNTPOINT_DATA_BUFFER) + MAX_PATH * sizeof(WCHAR)] = {};
 	REPARSE_MOUNTPOINT_DATA_BUFFER& ReparseBuffer = (REPARSE_MOUNTPOINT_DATA_BUFFER&)buf;
-	char szTarget[MAX_PATH] = {};
+	char szTarget[MAX_PATH] = "\\??\\";
 
 	strcat_s(szTarget, szPath);
-	strcat_s(szTarget, "\\");
+	// strcat_s(szTarget, "\\");
 
 	if( !CreateDirectory(szJunction, nullptr) ) return GetLastError();
 
