@@ -153,7 +153,7 @@ const char* HelpText =
 int main(int argc, char** argv, char** envp)
 {
 	std::uint32_t ProcessID = 0;
-	std::filesystem::path TargetPath("C:\\");
+	std::filesystem::path TargetPath;
 	bool Logging = false;
 	bool Continuous = false;
 	if( argc > 1 )
@@ -317,24 +317,34 @@ int main(int argc, char** argv, char** envp)
 		return EXIT_FAILURE;
 	}
 
-	//get local app data folder
+	// Get local app data folder
 	std::wofstream LogFile;
 	char* LocalAppData;
 	size_t len;
 	errno_t err = _dupenv_s(&LocalAppData, &len, "LOCALAPPDATA");
 
-	if( TargetPath != std::filesystem::path("C:\\") )
+	if( !TargetPath.empty() )
 	{
-		//get dump folder path
+		// Fully realize relative path into an absolute path
+		TargetPath = std::filesystem::absolute(TargetPath);
+
+		if( !std::filesystem::exists(TargetPath) || !std::filesystem::is_directory(TargetPath) )
+		{
+			std::cout << "\033[91mInvalid target directory: " << TargetPath << std::endl;
+			if( !Continuous ) system("pause");
+			return EXIT_FAILURE;
+		}
+
+		// Get dump folder path
 		std::filesystem::path DumpFolderPath(LocalAppData);
 		DumpFolderPath.append("Packages");
 		DumpFolderPath.append(PackageFileName);
 		DumpFolderPath.append("TempState\\DUMP");
-		//clear out dump folder
+		// Clear out dump folder
 		std::filesystem::remove_all(DumpFolderPath);
-		//create junction
+		// Create junction
 		CreateJunction(DumpFolderPath.string().c_str(), TargetPath.string().c_str());
-		//set acl for target directory
+		// Set ACL for target directory
 		SetAccessControl(TargetPath, L"S-1-15-2-1");
 	}
 
