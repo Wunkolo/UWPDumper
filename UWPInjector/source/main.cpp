@@ -41,7 +41,7 @@ std::wstring GetRunningDirectory();
 using ThreadCallback = bool(*)(
 	std::uint32_t ThreadID,
 	void* Data
-);
+	);
 
 typedef struct {
 	DWORD ReparseTag;
@@ -69,13 +69,13 @@ static DWORD CreateJunction(LPCSTR szJunction, LPCSTR szPath)
 	HANDLE hToken = nullptr;
 	TOKEN_PRIVILEGES tp;
 	try {
-		if( !OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken)) throw GetLastError();
-		if( !LookupPrivilegeValue(nullptr, SE_RESTORE_NAME, &tp.Privileges[0].Luid))  throw GetLastError();
+		if( !OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken) ) throw GetLastError();
+		if( !LookupPrivilegeValue(nullptr, SE_RESTORE_NAME, &tp.Privileges[0].Luid) )  throw GetLastError();
 		tp.PrivilegeCount = 1;
 		tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 		if( !AdjustTokenPrivileges(hToken, false, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr) )  throw GetLastError();
 	}
-	catch (DWORD LastError)
+	catch( DWORD LastError )
 	{
 		if( hToken ) CloseHandle(hToken);
 		return LastError;
@@ -133,48 +133,53 @@ void IterateThreads(ThreadCallback ThreadProc, std::uint32_t ProcessID, void* Da
 				break;
 			}
 		}
-	}
-	while( Thread32Next(hSnapShot, &ThreadEntry) );
+	} while( Thread32Next(hSnapShot, &ThreadEntry) );
 
 	CloseHandle(hSnapShot);
 }
 
-
+const char* HelpText =
+"To Set PID:\n"
+"	  -p {pid}\n"
+"EG: -p 1234\n"
+"Disable pausing and folder opening(for automation):\n"
+"    -c \n"
+"To Enable Logging:\n"
+"    -l \n"
+"To Dump To A Custom Folder:\n"
+"    -d {folder} \n"
+"EG: -d D:\\uwp\\dumps\\calculator";
 
 int main(int argc, char** argv, char** envp)
 {
 	std::uint32_t ProcessID = 0;
 	std::filesystem::path TargetPath("C:\\");
 	bool Logging = false;
+	bool Continuous = false;
 	if( argc > 1 )
 	{
 		for( std::size_t i = 1; i < argc; ++i )
 		{
 			if( std::string_view(argv[i]) == "-h" )
 			{
-				std::cout << "To Set PID:\n";
-				std::cout << "	  -p {pid}\n";
-				std::cout << "EG: -p 1234\n";
-				std::cout << "To Enable Logging:\n";
-				std::cout << "    -l \n";
-				std::cout << "To Dump To A Custom Folder:\n";
-				std::cout << "    -d {folder} \n";
-				std::cout << "EG: -d D:\\uwp\\dumps\\calculator \n";
-				system("pause");
+				std::cout << HelpText << std::endl;
 				return 0;
 			}
 			else if( std::string_view(argv[i]) == "-p" )
 			{
-				if( i != argc)
+				if( i != argc )
 				{
 					ProcessID = (std::uint32_t)atoi(argv[i + 1]);
 				}
 				else
 				{
 					std::cout << "-p must be followed by a pid\n";
-					system("pause");
 					return 0;
 				}
+			}
+			else if( std::string_view(argv[i]) == "-c" )
+			{
+				Continuous = true;
 			}
 			else if( std::string_view(argv[i]) == "-l" )
 			{
@@ -189,7 +194,6 @@ int main(int argc, char** argv, char** envp)
 				else
 				{
 					std::cout << "-d must be followed by the custom location\n";
-					system("pause");
 					return 0;
 				}
 			}
@@ -213,7 +217,7 @@ int main(int argc, char** argv, char** envp)
 
 	IPC::SetClientProcess(GetCurrentProcessId());
 
-	if( ProcessID == 0)
+	if( ProcessID == 0 )
 	{
 		std::cout << "\033[93mCurrently running UWP Apps:" << std::endl;
 		void* ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -222,20 +226,20 @@ int main(int argc, char** argv, char** envp)
 
 		if( Process32First(ProcessSnapshot, &ProcessEntry) )
 		{
-			while (Process32Next(ProcessSnapshot, &ProcessEntry) )
+			while( Process32Next(ProcessSnapshot, &ProcessEntry) )
 			{
 				void* ProcessHandle = OpenProcess(
 					PROCESS_QUERY_LIMITED_INFORMATION,
 					false,
 					ProcessEntry.th32ProcessID
 				);
-				if( ProcessHandle)
+				if( ProcessHandle )
 				{
 					std::uint32_t NameLength = 0;
 					std::int32_t ProcessCode = GetPackageFamilyName(
 						ProcessHandle, &NameLength, nullptr
 					);
-					if( NameLength)
+					if( NameLength )
 					{
 						std::wcout
 							<< "\033[92m"
@@ -254,7 +258,7 @@ int main(int argc, char** argv, char** envp)
 							PackageName.get()
 						);
 
-						if( ProcessCode != ERROR_SUCCESS)
+						if( ProcessCode != ERROR_SUCCESS )
 						{
 							std::wcout << "GetPackageFamilyName Error: " << ProcessCode;
 						}
@@ -270,7 +274,7 @@ int main(int argc, char** argv, char** envp)
 		else
 		{
 			std::cout << "\033[91mUnable to iterate active processes" << std::endl;
-			system("pause");
+			if( !Continuous ) system("pause");
 			return EXIT_FAILURE;
 		}
 		std::cout << "\033[93mEnter ProcessID: \033[92m";
@@ -280,7 +284,7 @@ int main(int argc, char** argv, char** envp)
 	// Get package name
 	std::wstring PackageFileName;
 
-	if( 
+	if(
 		HANDLE ProcessHandle = OpenProcess(
 			PROCESS_ALL_ACCESS | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
 			false, ProcessID
@@ -310,7 +314,7 @@ int main(int argc, char** argv, char** envp)
 	else
 	{
 		std::cout << "\033[91mFailed to query process for " << std::endl;
-		system("pause");
+		if( !Continuous ) system("pause");
 		return EXIT_FAILURE;
 	}
 
@@ -343,7 +347,7 @@ int main(int argc, char** argv, char** envp)
 	if( !DLLInjectRemote(ProcessID, GetRunningDirectory() + L'\\' + DLLFile) )
 	{
 		std::cout << "\033[91mFailed" << std::endl;
-		system("pause");
+		if( !Continuous ) system("pause");
 		return EXIT_FAILURE;
 	}
 	std::cout << "\033[92mSuccess!" << std::endl;
@@ -355,13 +359,13 @@ int main(int argc, char** argv, char** envp)
 		if( std::chrono::high_resolution_clock::now() >= ThreadTimeout )
 		{
 			std::cout << "\033[91mRemote thread wait timeout: Unable to find target thread" << std::endl;
-			system("pause");
+			if( !Continuous ) system("pause");
 			return EXIT_FAILURE;
 		}
 	}
 
 	std::cout << "Remote Dumper thread found: 0x" << std::hex << IPC::GetTargetThread() << std::endl;
-	
+
 	if( Logging )
 	{
 		std::filesystem::path LogFilePath = std::filesystem::current_path();
@@ -390,7 +394,7 @@ int main(int argc, char** argv, char** envp)
 		else
 		{
 			std::cout << "\033[91mFailed to open log file\033[0m" << std::endl;;
-			system("pause");
+			if( !Continuous ) system("pause");
 			return EXIT_FAILURE;
 		}
 	}
@@ -410,7 +414,7 @@ int main(int argc, char** argv, char** envp)
 		}
 	}
 	if( Logging ) LogFile.close();
-	system("pause");
+	if( !Continuous ) system("pause");
 	return EXIT_SUCCESS;
 }
 
@@ -436,7 +440,7 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 			nullptr,
 			&SecurityDescriptor
 		) == ERROR_SUCCESS
-	)
+		)
 	{
 		ConvertStringSidToSidW(AccessString, &SecurityIdentifier);
 		if( SecurityIdentifier != nullptr )
@@ -455,7 +459,7 @@ void SetAccessControl(const std::wstring& ExecutableName, const wchar_t* AccessS
 					AccessControlCurrent,
 					&AccessControlNew
 				) == ERROR_SUCCESS
-			)
+				)
 			{
 				SetNamedSecurityInfoW(
 					const_cast<wchar_t*>(ExecutableName.c_str()),
@@ -499,7 +503,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 
 	void* ProcLoadLibrary = reinterpret_cast<void*>(
 		GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "LoadLibraryW")
-	);
+		);
 
 	if( !ProcLoadLibrary )
 	{
@@ -521,7 +525,7 @@ bool DLLInjectRemote(uint32_t ProcessID, const std::wstring& DLLpath)
 			MEM_RESERVE | MEM_COMMIT,
 			PAGE_READWRITE
 		)
-	);
+		);
 
 	if( VirtualAlloc == nullptr )
 	{
