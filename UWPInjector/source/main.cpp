@@ -250,7 +250,8 @@ int main(int argc, char** argv, char** envp)
 							<< "\033[96m"
 							<< " \033(0x\033(B "
 							<< ProcessEntry.szExeFile << " :\n\t\t\033(0m\033(B";
-						std::unique_ptr<wchar_t[]> PackageName(new wchar_t[NameLength]());
+
+						std::unique_ptr<wchar_t[]> PackageName = std::make_unique<wchar_t[]>(NameLength);
 
 						ProcessCode = GetPackageFamilyName(
 							ProcessHandle,
@@ -264,8 +265,6 @@ int main(int argc, char** argv, char** envp)
 						}
 
 						std::wcout << PackageName.get() << std::endl;
-
-						PackageName.reset();
 					}
 				}
 				CloseHandle(ProcessHandle);
@@ -414,7 +413,17 @@ int main(int argc, char** argv, char** envp)
 		}
 	}
 	if( Logging ) LogFile.close();
-	if( !Continuous ) system("pause");
+	if( !Continuous ) {
+		// Open Tempstate folder for user
+		std::filesystem::path DumpFolderPath(LocalAppData);
+		DumpFolderPath = DumpFolderPath / "Packages" / PackageFileName / "TempState";
+
+		ShellExecuteW(
+			nullptr, L"open", DumpFolderPath.c_str(), nullptr, nullptr,
+			SW_SHOWDEFAULT
+		);
+		system("pause");
+	}
 	return EXIT_SUCCESS;
 }
 

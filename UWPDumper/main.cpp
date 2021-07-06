@@ -181,7 +181,6 @@ std::uint32_t __stdcall DumperThread(void* DLLHandle)
 	}
 
 	IPC::PushMessage(L"Dump complete!\n\tPath:\n\t%s\n", DumpPath.c_str());
-	OpenTempState();
 	IPC::ClearTargetThread();
 
 	FreeLibraryAndExitThread(
