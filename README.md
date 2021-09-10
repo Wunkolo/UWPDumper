@@ -1,6 +1,5 @@
 # UWPDumper [![Build status](https://ci.appveyor.com/api/projects/status/ys3yvpv0bdel15sx?svg=true)](https://ci.appveyor.com/project/Wunkolo/uwpdumper) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/Wunkolo/UWPDumper/master/LICENSE)
-## [Download latest x64 binary here!](https://ci.appveyor.com/api/projects/Wunkolo/uwpdumper/artifacts/UWPDumper-x64.zip?job=Platform%3A+x64)
-## [Download latest x86 binary here!](https://ci.appveyor.com/api/projects/Wunkolo/uwpdumper/artifacts/UWPDumper-Win32.zip?job=Platform%3A+x86)
+## [Download latest binary here!](https://github.com/Wunkolo/UWPDumper/releases/)
 
 ---
 DLL and Injector for dumping UWP applications at run-time to bypass encrypted file system protection.
