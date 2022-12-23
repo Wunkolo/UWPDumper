@@ -1,4 +1,4 @@
-# UWPDumper [![Build status](https://ci.appveyor.com/api/projects/status/ys3yvpv0bdel15sx?svg=true)](https://ci.appveyor.com/project/Wunkolo/uwpdumper) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/Wunkolo/UWPDumper/master/LICENSE)
+# UWPDumper [![Build](https://github.com/Wunkolo/UWPDumper/actions/workflows/ci.yml/badge.svg)](https://github.com/Wunkolo/UWPDumper/actions/workflows/ci.yml) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/Wunkolo/UWPDumper/master/LICENSE)
 ## [Download latest binary here!](https://github.com/Wunkolo/UWPDumper/releases/)
 
 ---
