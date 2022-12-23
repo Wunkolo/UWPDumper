@@ -35,7 +35,6 @@ jobs:
     - name: Build
       run: msbuild /m /property:Configuration=Release /property:Platform=${{matrix.platform}}
 
-
     - uses: actions/upload-artifact@v3
       if: github.ref == 'refs/heads/master'
       with:
@@ -48,14 +47,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download Artifacts
+      id: download
       uses: actions/download-artifact@v3
       with:
         name: artifacts
         path: artifacts
     
-    - uses: montudor/action-zip@v1
-      with:
-        args: zip -qq -r UWPDumper.zip artifacts/*
+    - name: Zipping artifacts
+      run: 7z a UWPDumper.zip ${{steps.download.outputs.download-path}}/*
 
     - name: Create release
       uses: "marvinpinto/action-automatic-releases@latest"
