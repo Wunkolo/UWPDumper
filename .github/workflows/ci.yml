@@ -1,0 +1,67 @@
+name: Build
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - master
+      - dev
+  pull_request:
+    paths-ignore:
+      - '**.md'
+    branches:
+      - master
+  release:
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [x86, x64]
+
+    steps:
+    - name: Checkout 
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        msbuild-architecture: ${{matrix.platform}}
+
+    - name: Build
+      run: msbuild /m /property:Configuration=Release /property:Platform=${{matrix.platform}}
+
+
+    - uses: actions/upload-artifact@v3
+      if: github.ref == 'refs/heads/master'
+      with:
+        name: artifacts
+        path: ${{matrix.platform}}
+
+  create-release:
+    if: github.ref == 'refs/heads/master'
+    needs: windows-build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: artifacts
+        path: artifacts
+    
+    - uses: montudor/action-zip@v1
+      with:
+        args: zip -qq -r UWPDumper.zip artifacts/*
+
+    - name: Create release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: false
+        title: "Latest Build"
+        files: UWPDumper.zip
